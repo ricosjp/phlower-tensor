@@ -5,7 +5,6 @@ from __future__ import annotations
 import functools
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any, NamedTuple, Self
-from collections.abc import Mapping
 
 import einops
 import numpy as np
@@ -14,9 +13,9 @@ from pipe import select
 
 from phlower_tensor._array import IPhlowerArray, phlower_array
 from phlower_tensor._base import PhysicalDimensions
-from phlower_tensor._tensor import PhysicDimensionLikeObject
-from phlower_tensor._tensor._dimension_tensor import (
+from phlower_tensor._tensor._dimension import (
     PhlowerDimensionTensor,
+    PhysicDimensionLikeObject,
     phlower_dimension_tensor,
 )
 from phlower_tensor._tensor._tensor_shape import PhlowerShapePattern

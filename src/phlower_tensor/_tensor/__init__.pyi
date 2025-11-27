@@ -8,17 +8,13 @@ import numpy as np
 import torch
 
 from phlower_tensor._array import IPhlowerArray
-from phlower_tensor._base import PhysicalDimensions
-from phlower_tensor._tensor._tensor_shape import PhlowerShapePattern
-
-type PhysicDimensionLikeObject = (
-    PhysicalDimensions
-    | PhlowerDimensionTensor
-    | torch.Tensor
-    | dict[str, float]
-    | list[float]
-    | tuple[float]
+from phlower_tensor._tensor._dimension import (
+    PhlowerDimensionTensor,
+    PhysicDimensionLikeObject,
+    phlower_dimension_tensor,
+    zero_dimension_tensor,
 )
+from phlower_tensor._tensor._tensor_shape import PhlowerShapePattern
 
 @overload
 def phlower_tensor(
@@ -37,14 +33,6 @@ def phlower_tensor(
     dtype: torch.dtype | None = None,
     device: torch.device | str | None = None,
 ) -> PhlowerTensor: ...
-def phlower_dimension_tensor(
-    values: dict[str, float] | PhysicalDimensions,
-    dtype: torch.dtype = torch.float32,
-    device: str | torch.device | None = None,
-) -> PhlowerDimensionTensor: ...
-def zero_dimension_tensor(
-    device: str | torch.device | None,
-) -> PhlowerDimensionTensor: ...
 
 class PhlowerTensor(metaclass=abc.ABCMeta):
     @property
@@ -169,84 +157,11 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
         kwargs: dict | None = None,
     ): ...
 
-class PhlowerDimensionTensor:
-    """
-    PhlowerDimensionTensor is a tensor that represents the physical dimensions
-
-    Examples
-    --------
-    >>> dimension_tensor = PhlowerDimensionTensor(
-    ...     values={"M": 1.0, "L": 1.0, "T": -2.0}
-    ... )
-    """
-
-    @classmethod
-    def from_list(
-        cls,
-        values: list[float] | tuple[float],
-        dtype: torch.dtype = torch.float32,
-        device: str | torch.device | None = None,
-    ) -> PhlowerDimensionTensor:
-        """
-        Parse from list object
-
-        Args:
-            values (list[float] | tuple[float]): list or tuple
-                if length of values is not equal to the number of registered
-                dimension type, raise ValueError.
-
-        Returns:
-            PhlowerDimensionTensor: tensor object
-        """
-        ...
-
-    def __sub__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __rsub__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __add__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __radd__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __mul__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __rmul__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __truediv__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __rtruediv__(self, __value: object) -> PhlowerDimensionTensor: ...
-    def __eq__(self, other: object) -> bool: ...
-    def __pow__(self, other: float | int) -> PhlowerDimensionTensor: ...
-    def __repr__(self) -> str: ...
-    def to_physics_dimension(self) -> PhysicalDimensions: ...
-    def to_dict(self) -> dict[str, float]: ...
-    def to(
-        self,
-        device: str | torch.device | None = None,
-        non_blocking: bool = False,
-        dtype: torch.dtype | None = None,
-    ) -> PhlowerDimensionTensor: ...
-    def detach(self) -> PhlowerDimensionTensor: ...
-    def clone(self) -> PhlowerDimensionTensor: ...
-    @property
-    def dtype(self) -> torch.dtype: ...
-    @property
-    def device(self) -> torch.device: ...
-    @property
-    def is_dimensionless(self) -> bool:
-        """Return True if the tensor is dimensionless.
-
-        Returns:
-            bool: True if the tensor is dimensionless.
-        """
-        ...
-
-    def numpy(self) -> np.ndarray:
-        """Convert to numpy array
-
-        Returns:
-            np.ndarray: numpy array
-        """
-        ...
-
-    @classmethod
-    def __torch_function__(
-        cls,
-        func: Callable,
-        types: list[type],
-        args: tuple,
-        kwargs: dict | None = None,
-    ) -> PhlowerDimensionTensor: ...
+__all__ = [
+    "PhlowerTensor",
+    "phlower_tensor",
+    "PhlowerDimensionTensor",
+    "PhysicDimensionLikeObject",
+    "phlower_dimension_tensor",
+    "zero_dimension_tensor",
+]

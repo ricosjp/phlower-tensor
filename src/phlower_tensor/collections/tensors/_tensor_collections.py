@@ -387,7 +387,7 @@ def _all_stack(
 
     return cast(
         PhlowerTensor,
-        torch.stack([v * weights[k] for k, v in value.items()]), # type: ignore[misc]
+        torch.stack([v * weights[k] for k, v in value.items()]),  # type: ignore[misc]
     )
 
 

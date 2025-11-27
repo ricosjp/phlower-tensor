@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any, cast
-from collections.abc import Sequence
 
 import numpy as np
 import torch
@@ -242,10 +241,10 @@ class PhlowerDimensionTensor:
         if kwargs is None:
             kwargs = {}
 
-        if func not in _HANDLED_FUNCTIONS:
+        if func.__name__ not in _HANDLED_FUNCTIONS:
             return NotImplemented
 
-        return _HANDLED_FUNCTIONS[func.__qualname__](*args, **kwargs)
+        return _HANDLED_FUNCTIONS[func.__name__](*args, **kwargs)
 
 
 def dimension_wrap_implements(torch_function: Callable) -> Callable:
@@ -253,7 +252,7 @@ def dimension_wrap_implements(torch_function: Callable) -> Callable:
 
     def decorator(func: Callable) -> Callable:
         functools.update_wrapper(func, torch_function)
-        _HANDLED_FUNCTIONS[torch_function.__qualname__] = func
+        _HANDLED_FUNCTIONS[torch_function.__name__] = func
         return func
 
     return decorator
@@ -314,6 +313,22 @@ def add(
 
 @dimension_wrap_implements(torch.sub)
 def sub(
+    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+) -> PhlowerDimensionTensor:
+    device = _determine_device(inputs, other)
+    inputs, other = _convert_phlower_dimension_tensors(
+        inputs, other, device=device
+    )
+    if inputs != other:
+        raise DimensionIncompatibleError(
+            "Sub operation for different physical dimensions is not allowed."
+        )
+
+    return PhlowerDimensionTensor(inputs._tensor)
+
+
+@dimension_wrap_implements(torch.rsub)
+def rsub(
     inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
     device = _determine_device(inputs, other)
@@ -627,3 +642,17 @@ def _torch_sin(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
             f"Should be dimensionless to apply sin but {inputs}"
         )
     return inputs
+
+
+# region PhysicDimensionLikeObject
+
+PhysicDimensionLikeObject = (
+    PhysicalDimensions
+    | PhlowerDimensionTensor
+    | torch.Tensor
+    | dict[str, float]
+    | list[float]
+    | tuple[float]
+)
+
+# endregion

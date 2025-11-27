@@ -3,9 +3,6 @@ RM = rm -rf
 GPU_ID = 0
 CUDA_TAG = cu124
 
-VERSION = 1.4.0
-PREVIOUS_VERSIONS = 1.2.0 1.3.0 1.4.0
-
 
 # ---- For Developer
 
@@ -33,27 +30,19 @@ mypy:
 	uv run mypy src
 
 
-.PHONY: dev_test
-dev_test:
-	uv run pytest tests -m "not (long_test or regression)"
+# .PHONY: document_local
+# document_local:
+# 	$(RM) public
+# 	uv run sphinx-build docs/ public/
 
-.PHONY: dev_test_lf
-dev_test_lf:
-	uv run pytest tests -m "not (long_test or regression)" --lf
 
-.PHONY: regression_test
-regression_test:
-	uv run pytest tests -m "regression" --previous-versions $(PREVIOUS_VERSIONS)
+.PHONY: test
+test:
+	uv run pytest tests -m "not gpu_test" --cov=src --cov-report term-missing --durations 5
 
-.PHONY: document_local
-document_local:
-	$(RM) public
-	uv run sphinx-build docs/ public/
-
-.PHONY: document
-document:
-	$(RM) public
-	uv run sphinx-multiversion docs/ public/
+.PHONY: gpu_test
+gpu_test:
+	uv run pytest tests -m "gpu_test"
 
 # ----
 
@@ -63,21 +52,5 @@ document:
 build_push_image:
 	make -C docker/ci_image build_push_ci VERSION=$(VERSION) && \
 	make -C docker/ci_image build_push_release VERSION=$(VERSION)
-
-.PHONY: build_push_release_image
-build_push_release_image:
-	make -C docker/ci_image build_push_release VERSION=$(VERSION)
-
-
-.PHONY: build_release_sif
-build_release_sif:
-	make -C docker/ci_image build_release_sif VERSION=$(VERSION)
-
-.PHONY: push_release_sif
-push_release_sif:
-	make -C docker/ci_image push_release_sif VERSION=$(VERSION)
-
-.PHONY: build_push_release_sif
-build_push_release_sif: build_release_sif push_release_sif
 
 # ----

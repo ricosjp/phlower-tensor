@@ -24,12 +24,21 @@ dev = [
     "hypothesis>=6.148.3",
     "mypy>=1.18.2",
     "pytest>=9.0.1",
+    "pytest-cov>=7.0.0",
     "ruff>=0.14.6",
     "scipy-stubs>=1.16.3.1",
 ]
 
 [tool.mypy]
 ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib"
+]
+markers = [
+    "gpu_test: marks tests as test using GPUs (deselect with '-m not gpu_test')",
+]
 
 # region Ruff
 

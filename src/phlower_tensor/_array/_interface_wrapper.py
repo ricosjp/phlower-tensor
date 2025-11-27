@@ -10,9 +10,7 @@ from phlower_tensor._base import PhysicalDimensions
 
 class IPhlowerArray[T](metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def __init__(
-        self, data: T, dimensions: PhysicalDimensions
-    ) -> None: ...
+    def __init__(self, data: T, dimensions: PhysicalDimensions) -> None: ...
 
     @property
     @abc.abstractmethod
