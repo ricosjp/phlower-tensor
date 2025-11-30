@@ -642,17 +642,3 @@ def _torch_sin(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
             f"Should be dimensionless to apply sin but {inputs}"
         )
     return inputs
-
-
-# region PhysicDimensionLikeObject
-
-PhysicDimensionLikeObject = (
-    PhysicalDimensions
-    | PhlowerDimensionTensor
-    | torch.Tensor
-    | dict[str, float]
-    | list[float]
-    | tuple[float]
-)
-
-# endregion

@@ -4,9 +4,6 @@ import numpy as np
 import torch
 
 from phlower_tensor._base import PhysicalDimensions
-from phlower_tensor._tensor._dimension._dimension_tensor import (
-    PhysicDimensionLikeObject,
-)
 
 def phlower_dimension_tensor(
     values: dict[str, float] | PhysicalDimensions,
@@ -61,6 +58,15 @@ class PhlowerDimensionTensor:
         args: tuple,
         kwargs: dict | None = None,
     ) -> PhlowerDimensionTensor: ...
+
+PhysicDimensionLikeObject = (
+    PhysicalDimensions
+    | PhlowerDimensionTensor
+    | torch.Tensor
+    | dict[str, float]
+    | list[float]
+    | tuple[float]
+)
 
 __all__ = [
     "PhlowerDimensionTensor",
