@@ -2,6 +2,7 @@
 RM = rm -rf
 GPU_ID = 0
 CUDA_TAG = cu124
+VERSION = `uv version --short`
 
 
 # ---- For Developer
@@ -34,8 +35,6 @@ mypy:
 # document_local:
 # 	$(RM) public
 # 	uv run sphinx-build docs/ public/
-
-
 .PHONY: test
 test:
 	uv run pytest tests -m "not gpu_test" --cov=src --cov-report term-missing --durations 5
@@ -48,9 +47,8 @@ gpu_test:
 
 # ---- Docker Images
 
-.PHONY: build_push_image
-build_push_image:
-	make -C docker/ci_image build_push_ci VERSION=$(VERSION) && \
-	make -C docker/ci_image build_push_release VERSION=$(VERSION)
+.PHONY: push_docker_images
+push_docker_images: 
+	make -C docker push VERSION=${VERSION}
 
 # ----

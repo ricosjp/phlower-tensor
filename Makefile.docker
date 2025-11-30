@@ -1,0 +1,42 @@
+CI_REGISTRY_IMAGE ?= registry.ritc.jp/ricos/machine_learning/phlower-tensor
+VERSION = `uv version --short`
+
+login:
+ifeq ($(CI_JOB_TOKEN),)
+	docker login $(CI_REGISTRY_IMAGE)
+else
+	docker login -u gitlab-ci-token -p $(CI_JOB_TOKEN) $(CI_REGISTRY_IMAGE)
+endif
+
+
+.PHONY: push_cpu_images
+push_cpu_images:
+	docker build \
+		-t $(CI_REGISTRY_IMAGE):$(VERSION)-py311-cpu \
+		--build-arg USE_PYTHON_VERSION=3.11 \
+		-f docker/cpu.Dockerfile \
+		.
+	docker push $(CI_REGISTRY_IMAGE):$(VERSION)-py311-cpu
+
+	docker build \
+		-t $(CI_REGISTRY_IMAGE):$(VERSION)-py312-cpu \
+		--build-arg USE_PYTHON_VERSION=3.12 \
+		-f docker/cpu.Dockerfile \
+		.
+	docker push $(CI_REGISTRY_IMAGE):$(VERSION)-py312-cpu
+
+
+.PHONY: build_gpu_image
+build_gpu_image:
+	docker build \
+		-t $(CI_REGISTRY_IMAGE):$(VERSION)-py312-cu124 \
+		--build-arg USE_PYTHON_VERSION=3.12 \
+		-f docker/gpu.Dockerfile \
+		.
+
+.PHONY: push_gpu_image
+push_gpu_image: build_gpu_image
+	docker push $(CI_REGISTRY_IMAGE):$(VERSION)-py312-cu124
+
+
+push: login push_cpu_images # push_gpu_image

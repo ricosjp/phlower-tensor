@@ -4,20 +4,18 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
+license = "Apache-2.0"
 dependencies = [
     "einops>=0.8.1",
     "numpy>=2.3.5",
     "pipe>=2.2",
     "scipy>=1.16.3",
-    "torch>=2.9.1",
 ]
 
-[project.scripts]
-phlower-tensor = "phlower_tensor:main"
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.13,<0.10.0"]
+build-backend = "uv_build"
+
 
 [dependency-groups]
 dev = [
@@ -28,6 +26,53 @@ dev = [
     "ruff>=0.14.6",
     "scipy-stubs>=1.16.3.1",
 ]
+
+
+[project.optional-dependencies]
+cpu = [
+  "torch>=2.5.1",
+  "torchvision>=0.20.1",
+]
+cu118 = [
+  "torch>=2.5.1",
+  "torchvision>=0.20.1",
+]
+cu124 = [
+  "torch>=2.5.1",
+  "torchvision>=0.20.1",
+]
+
+[tool.uv]
+conflicts = [
+  [
+    { extra = "cpu" },
+    { extra = "cu118" },
+    { extra = "cu124" },
+  ],
+]
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch-cpu", extra = "cpu" },
+  { index = "pytorch-cu118", extra = "cu118" },
+  { index = "pytorch-cu124", extra = "cu124" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu118"
+url = "https://download.pytorch.org/whl/cu118"
+explicit = true
+
 
 [tool.mypy]
 ignore_missing_imports = true
