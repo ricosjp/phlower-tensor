@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import TypeVar
 
 import hypothesis.strategies as st
 import numpy as np
@@ -92,7 +93,10 @@ def test__sparse_array_to_phlower_tensor(
     assert phlower_tensor.is_sparse
 
 
-def dummy_apply_function[T](x: T) -> T:
+T = TypeVar("T")
+
+
+def dummy_apply_function(x: T) -> T:
     return np.abs(x / np.max(x))
 
 
