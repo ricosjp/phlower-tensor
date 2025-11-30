@@ -13,7 +13,7 @@ from phlower_tensor.collections.tensors._tensor_collections import (
 T = TypeVar("T", IPhlowerTensorCollections, SimulationField, PhlowerTensor)
 
 
-def unbatch[T](
+def unbatch(
     tensor: T,
     batch_info: GraphBatchInfo | None = None,
     n_nodes: list[int] | tuple[int] | None = None,

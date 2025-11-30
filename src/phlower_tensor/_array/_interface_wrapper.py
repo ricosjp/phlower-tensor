@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable
+from typing import Generic, TypeVar
 
 import torch
 
 from phlower_tensor._base import PhysicalDimensions
 
+T = TypeVar("T")
 
-class IPhlowerArray[T](metaclass=abc.ABCMeta):
+
+class IPhlowerArray(Generic[T], metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __init__(self, data: T, dimensions: PhysicalDimensions) -> None: ...
 
