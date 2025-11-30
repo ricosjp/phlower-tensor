@@ -11,12 +11,14 @@ default:
   image: ${PHLOWER_IMAGE_REGISTRY}:${PHLOWER_VERSION}-py312-cpu
   before_script:
     - source /workspace/.venv/bin/activate
+    - uv run python3 -m ensurepip --upgrade
     - uv run python3 -m pip install -e .
 
 lint:
   stage: test
   script:
     - make lint
+    - make mypy
   tags:
     - no-gpu
   dependencies: []
