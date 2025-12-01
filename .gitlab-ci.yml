@@ -92,7 +92,7 @@ gpu_test:
   script:
     - uv version $VERSION
     - uv build
-    - poetry publish --username __token__ --password $PYPI_PUBLISH_TOKEN --no-ansi -n -v
+    - uv publish --username __token__ --password $PYPI_PUBLISH_TOKEN -n -v
 
 deploy:wheel:tags:
   image: python:3.11-slim
