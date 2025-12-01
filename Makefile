@@ -35,6 +35,7 @@ mypy:
 # document_local:
 # 	$(RM) public
 # 	uv run sphinx-build docs/ public/
+
 .PHONY: test
 test:
 	uv run pytest tests -m "not gpu_test" --cov=src --cov-report term-missing --durations 5

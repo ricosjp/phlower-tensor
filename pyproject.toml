@@ -1,7 +1,7 @@
 [project]
 name = "phlower-tensor"
 version = "0.1.0"
-description = "Add your description here"
+description = "A PyTorch tensor extension for physical dimension-aware tensors."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -11,11 +11,15 @@ dependencies = [
     "pipe>=2.2",
     "scipy>=1.16.3",
 ]
+authors = [{name = "RICOS Co. Ltd."}]
+maintainers = [
+    { name = "Riku Sakamoto", email = "sakamoto@ricos.co.jp" },
+]
+
 
 [build-system]
 requires = ["uv_build>=0.9.13,<0.10.0"]
 build-backend = "uv_build"
-
 
 [dependency-groups]
 dev = [
