@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import overload
 
 from phlower_tensor._batch import GraphBatchInfo
@@ -32,6 +31,3 @@ def unbatch(
 def unbatch(
     tensor: SimulationField, *, batch_info: GraphBatchInfo
 ) -> list[PhlowerTensor]: ...
-def to_batch(
-    tensors: Sequence[PhlowerTensor], dense_concat_dim: int = 0
-) -> tuple[PhlowerTensor, GraphBatchInfo]: ...

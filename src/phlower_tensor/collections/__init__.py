@@ -2,4 +2,6 @@ from phlower_tensor.collections.arrays import SequencedDictArray
 from phlower_tensor.collections.tensors import (
     IPhlowerTensorCollections,
     phlower_tensor_collection,
+    reduce_stack,
+    reduce_update,
 )
