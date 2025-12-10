@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import ItemsView, Iterable
+from collections.abc import ItemsView, KeysView
+from typing import TYPE_CHECKING
 
 import torch
 
 from phlower_tensor._batch import GraphBatchInfo
 from phlower_tensor._tensor import PhlowerTensor
-from phlower_tensor.collections.tensors import IPhlowerTensorCollections
+
+if TYPE_CHECKING:
+    from phlower_tensor.collections.tensors._interface import (
+        IPhlowerTensorCollections,
+    )
 
 
 class ISimulationField(metaclass=abc.ABCMeta):
@@ -18,10 +23,10 @@ class ISimulationField(metaclass=abc.ABCMeta):
     def __contains__(self, name: str) -> bool: ...
 
     @abc.abstractmethod
-    def keys(self): ...
+    def keys(self) -> KeysView[str]: ...
 
     @abc.abstractmethod
-    def items(self): ...
+    def items(self) -> ItemsView[str, PhlowerTensor]: ...
 
     @abc.abstractmethod
     def get_batch_info(self, name: str) -> GraphBatchInfo: ...
@@ -32,7 +37,7 @@ class ISimulationField(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def to(
         self, device: str | torch.device, non_blocking: bool = False
-    ) -> ISimulationField: ...
+    ) -> SimulationField: ...
 
 
 class SimulationField(ISimulationField):
@@ -47,7 +52,7 @@ class SimulationField(ISimulationField):
             batch_info = {}
         self._batch_info = batch_info
 
-    def keys(self) -> Iterable[str]:
+    def keys(self) -> KeysView[str]:
         return self._field_tensors.keys()
 
     def items(self) -> ItemsView[str, PhlowerTensor]:
@@ -76,7 +81,7 @@ class SimulationField(ISimulationField):
 
     def to(
         self, device: str | torch.device, non_blocking: bool = False
-    ) -> ISimulationField:
+    ) -> SimulationField:
         return SimulationField(
             field_tensors=self._field_tensors.to(
                 device, non_blocking=non_blocking

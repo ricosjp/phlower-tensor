@@ -1,6 +1,6 @@
 [project]
 name = "phlower-tensor"
-version = "0.1.0"
+version = "0.1.1"
 description = "A PyTorch tensor extension for physical dimension-aware tensors."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -89,10 +89,19 @@ markers = [
     "gpu_test: marks tests as test using GPUs (deselect with '-m not gpu_test')",
 ]
 
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",
+    "@(abc\\.)?abstractmethod",
+    "raise NotImplementedError"
+    ]
+
+
 # region Ruff
 
 [tool.ruff]
-include = ["pyproject.toml", "src/**/*.py", "tests/**/*.py", "src/**/__init__.pyi"]
+include = ["pyproject.toml", "src/**/*.py", "src/**/*.pyi", "tests/**/*.py", "src/**/__init__.pyi"]
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
