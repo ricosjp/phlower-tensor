@@ -8,11 +8,11 @@ DenseArrayType = np.ndarray
 # When you want to activate csr and csc matrix, modify them.
 SparseArrayType = (
     sp.coo_matrix
-    # | sp.csr_matrix
-    # | sp.csc_matrix
-    # | sp.csr_array
+    | sp.csr_matrix
+    | sp.csc_matrix
+    | sp.csr_array
     | sp.coo_array
-    # | sp.csc_array
+    | sp.csc_array
 )
 
 ArrayDataType = np.ndarray | SparseArrayType

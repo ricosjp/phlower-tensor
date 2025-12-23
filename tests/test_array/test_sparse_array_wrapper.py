@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 import hypothesis.strategies as st
 import numpy as np
@@ -15,17 +15,24 @@ from phlower_tensor.utils.enums import PhysicalDimensionSymbolType
 
 @st.composite
 def random_sparse_array(
-    draw: Callable, arr_shape: st.SearchStrategy
+    draw: Callable,
+    arr_shape: st.SearchStrategy,
+    sp_type: Literal["coo", "csr", "csc"] = "coo",
 ) -> sp.coo_array:
     rng = np.random.default_rng()
     shapes = draw(arr_shape)
     if shapes[0] == 1 and shapes[1] == 1:
-        return sp.random(*shapes, density=1, random_state=rng, dtype=np.float32)
+        _coo = sp.random(*shapes, density=1, random_state=rng, dtype=np.float32)
 
     else:
-        return sp.random(
+        _coo = sp.random(
             *shapes, density=0.2, random_state=rng, dtype=np.float32
         )
+    if sp_type == "csr":
+        return _coo.tocsr()
+    if sp_type == "csc":
+        return _coo.tocsc()
+    return _coo
 
 
 @st.composite
@@ -49,9 +56,10 @@ def random_physical_dimensions(
 
 @given(
     random_sparse_array(
-        st.lists(
+        arr_shape=st.lists(
             st.integers(min_value=1, max_value=100), min_size=2, max_size=2
-        )
+        ),
+        sp_type=st.sampled_from(["coo", "csr", "csc"]),
     )
 )
 def test__sparse_array_property(arr: sp.coo_array):
@@ -78,9 +86,10 @@ def test__sparse_array_property(arr: sp.coo_array):
 
 @given(
     arr=random_sparse_array(
-        st.lists(
+        arr_shape=st.lists(
             st.integers(min_value=1, max_value=100), min_size=2, max_size=2
-        )
+        ),
+        sp_type=st.sampled_from(["coo", "csr", "csc"]),
     ),
     dimensions=random_physical_dimensions(),
 )
@@ -102,9 +111,10 @@ def dummy_apply_function(x: T) -> T:
 
 @given(
     random_sparse_array(
-        st.lists(
+        arr_shape=st.lists(
             st.integers(min_value=1, max_value=100), min_size=2, max_size=2
-        )
+        ),
+        sp_type=st.sampled_from(["coo", "csr", "csc"]),
     )
 )
 def test__sparse_array_apply(arr: sp.coo_array):
@@ -119,9 +129,10 @@ def test__sparse_array_apply(arr: sp.coo_array):
 
 @given(
     random_sparse_array(
-        st.lists(
+        arr_shape=st.lists(
             st.integers(min_value=1, max_value=100), min_size=2, max_size=2
-        )
+        ),
+        sp_type=st.sampled_from(["coo", "csr", "csc"]),
     )
 )
 def test__sparse_array_apply_not_allowed_to_use_diagonal(arr: sp.coo_array):
