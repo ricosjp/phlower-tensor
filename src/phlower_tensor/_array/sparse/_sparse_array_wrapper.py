@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 import numpy as np
+import scipy.sparse as sp
 import torch
 
 from phlower_tensor._array._interface_wrapper import IPhlowerArray
@@ -37,12 +38,16 @@ class SparseArrayWrapper(IPhlowerArray[SparseArrayType]):
         return False
 
     @property
-    def row(self) -> np.ndarray:
-        return self._sparse_data.row
+    def row(self) -> np.ndarray | None:
+        if isinstance(self._sparse_data, (sp.coo_matrix, sp.coo_array)):
+            return self._sparse_data.row
+        return None
 
     @property
-    def col(self) -> np.ndarray:
-        return self._sparse_data.col
+    def col(self) -> np.ndarray | None:
+        if isinstance(self._sparse_data, (sp.coo_matrix, sp.coo_array)):
+            return self._sparse_data.col
+        return None
 
     @property
     def data(self) -> np.ndarray:
@@ -107,20 +112,24 @@ class SparseArrayWrapper(IPhlowerArray[SparseArrayType]):
 
         return self._sparse_data.reshape((self.shape[0] * self.shape[1], 1))
 
+    def to_coo(self) -> sp.coo_array | sp.coo_matrix:
+        return self._sparse_data.tocoo()
+
     def to_tensor(
         self,
         device: str | torch.device | None = None,
         non_blocking: bool = False,
     ) -> torch.Tensor:
+        _coo = self.to_coo()
         sparse_tensor = torch.sparse_coo_tensor(
             torch.stack(
                 [
-                    torch.LongTensor(self._sparse_data.row),
-                    torch.LongTensor(self._sparse_data.col),
+                    torch.LongTensor(_coo.row),
+                    torch.LongTensor(_coo.col),
                 ]
             ),
-            torch.from_numpy(self._sparse_data.data),
-            self._sparse_data.shape,
+            torch.from_numpy(_coo.data),
+            _coo.shape,
         )
         _tensor = sparse_tensor.coalesce()
         return _tensor.to(device=device, non_blocking=non_blocking)
