@@ -160,6 +160,16 @@ class PhlowerDimensionTensor:
         )
         return f"{self.__class__.__name__}({texts})"
 
+    def __matmul__(
+        self, other: PhlowerDimensionTensor | torch.Tensor
+    ) -> PhlowerDimensionTensor:
+        return cast(PhlowerDimensionTensor, torch.matmul(self, other))  # type: ignore[arg-type]
+
+    def __rmatmul__(
+        self, other: PhlowerDimensionTensor | torch.Tensor
+    ) -> PhlowerDimensionTensor:
+        return cast(PhlowerDimensionTensor, torch.matmul(other, self))  # type: ignore[arg-type]
+
     def to_physics_dimension(self) -> PhysicalDimensions:
         """Convert to PhysicalDimensions object
 
@@ -642,3 +652,15 @@ def _torch_sin(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
             f"Should be dimensionless to apply sin but {inputs}"
         )
     return inputs
+
+
+@dimension_wrap_implements(torch.matmul)
+def _torch_matmul(
+    inputs: PhlowerDimensionTensor | torch.Tensor,
+    other: PhlowerDimensionTensor | torch.Tensor,
+) -> PhlowerDimensionTensor:
+    device = _determine_device(inputs, other)
+    _inputs, _other = _convert_phlower_dimension_tensors(
+        inputs, other, device=device
+    )
+    return PhlowerDimensionTensor(_inputs._tensor + _other._tensor)
