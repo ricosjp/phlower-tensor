@@ -325,6 +325,9 @@ class PhlowerTensor:
     def __matmul__(self, other: PhlowerTensor | torch.Tensor) -> PhlowerTensor:
         return torch.matmul(self, other)
 
+    def __rmatmul__(self, other: PhlowerTensor | torch.Tensor) -> PhlowerTensor:
+        return torch.matmul(other, self)
+
     def __bool__(self) -> bool:
         return bool(self._tensor)
 

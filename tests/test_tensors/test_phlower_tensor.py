@@ -719,6 +719,73 @@ def test__setitem_raise_dimension_incompatible_error(
         t[2:] = s[2:]
 
 
+@pytest.mark.parametrize(
+    "dimension_a, dimension_b, desired_dimension",
+    [
+        ({"L": 2, "T": -1}, {"L": -1, "T": 1}, {"L": 1, "T": 0}),
+        ({}, {"L": -1, "T": 1}, {"L": -1, "T": 1}),
+        ({"L": 2, "T": -1}, {}, {"L": 2, "T": -1}),
+        ({}, {}, {}),
+    ],
+)
+@pytest.mark.parametrize(
+    "is_time_series_a, is_time_series_b, desired_is_time_series",
+    [
+        (False, False, False),
+        (False, True, True),
+        (True, False, True),
+        (True, True, True),
+    ],
+)
+def test__matmul(
+    dimension_a: dict[str, int],
+    dimension_b: dict[str, int],
+    desired_dimension: dict[str, int],
+    is_time_series_a: bool,
+    is_time_series_b: bool,
+    desired_is_time_series: bool,
+):
+    a = phlower_tensor(
+        torch.rand(3, 4), dimension=dimension_a, is_time_series=is_time_series_a
+    )
+    b = phlower_tensor(
+        torch.rand(4, 5), dimension=dimension_b, is_time_series=is_time_series_b
+    )
+
+    cp = a @ b
+    c = a.to_numpy() @ b.to_numpy()
+
+    np.testing.assert_array_almost_equal(cp.to_numpy(), c)
+    assert cp.dimension == phlower_dimension_tensor(desired_dimension)
+    assert cp.is_time_series is desired_is_time_series
+
+
+def test__matmul_with_torch_tensor():
+    a = torch.rand(3, 4)
+    b = phlower_tensor(
+        torch.rand(4, 5), dimension={"L": -1, "T": 1}, is_time_series=False
+    )
+
+    cp = a @ b
+    c = a.numpy() @ b.to_numpy()
+
+    np.testing.assert_array_almost_equal(cp.to_numpy(), c)
+    assert cp.dimension == phlower_dimension_tensor({"L": -1, "T": 1})
+
+
+def test__rmatmul_with_torch_tensor():
+    a = torch.rand(4, 5)
+    b = phlower_tensor(
+        torch.rand(3, 4), dimension={"L": -1, "T": 1}, is_time_series=False
+    )
+
+    cp = b @ a
+    c = b.numpy() @ a.numpy()
+
+    np.testing.assert_array_almost_equal(cp.to_numpy(), c)
+    assert cp.dimension == phlower_dimension_tensor({"L": -1, "T": 1})
+
+
 # region Test for __getitem__
 
 
