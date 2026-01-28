@@ -163,12 +163,12 @@ class PhlowerDimensionTensor:
     def __matmul__(
         self, other: PhlowerDimensionTensor | torch.Tensor
     ) -> PhlowerDimensionTensor:
-        return PhlowerDimensionTensor(tensor=torch.matmul(self._tensor, other))
+        return cast(PhlowerDimensionTensor, torch.matmul(self, other))  # type: ignore[arg-type]
 
     def __rmatmul__(
         self, other: PhlowerDimensionTensor | torch.Tensor
     ) -> PhlowerDimensionTensor:
-        return PhlowerDimensionTensor(tensor=torch.matmul(other, self._tensor))
+        return cast(PhlowerDimensionTensor, torch.matmul(other, self))  # type: ignore[arg-type]
 
     def to_physics_dimension(self) -> PhysicalDimensions:
         """Convert to PhysicalDimensions object

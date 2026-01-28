@@ -11,8 +11,6 @@ from phlower_tensor._array import IPhlowerArray
 from phlower_tensor._tensor._dimension import (
     PhlowerDimensionTensor,
     PhysicDimensionLikeObject,
-    phlower_dimension_tensor,
-    zero_dimension_tensor,
 )
 from phlower_tensor._tensor._tensor_shape import PhlowerShapePattern
 
@@ -128,6 +126,7 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
     ) -> PhlowerTensor: ...
     def backward(self) -> None: ...
     def to_vertexwise(self) -> tuple[PhlowerTensor, str]: ...
+    def numpy(self) -> np.ndarray: ...
     def to_numpy(self) -> np.ndarray: ...
     def is_global(self, n_batch: int) -> bool: ...
     def rearrange(
@@ -156,12 +155,3 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
         args: tuple,
         kwargs: dict | None = None,
     ): ...
-
-__all__ = [
-    "PhlowerTensor",
-    "phlower_tensor",
-    "PhlowerDimensionTensor",
-    "PhysicDimensionLikeObject",
-    "phlower_dimension_tensor",
-    "zero_dimension_tensor",
-]
