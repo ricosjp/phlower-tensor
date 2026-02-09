@@ -14,20 +14,30 @@ from phlower_tensor.utils.exceptions import DimensionIncompatibleError
 
 
 @st.composite
-def random_phlower_tensors_with_same_dimension_and_shape(
+def random_dimensions(draw: Callable) -> None:
+    dimensions = draw(
+        st.lists(
+            elements=st.floats(allow_nan=False, allow_infinity=False, width=16),
+            min_size=len(PhysicalDimensionSymbolType),
+            max_size=len(PhysicalDimensionSymbolType),
+        )
+    )
+    # To avoid zero dimension
+    return [d + 1e-5 for d in dimensions]
+
+
+@st.composite
+def random_phlower_tensor_with_same_dimension_and_shape(
     draw: Callable,
     shape: tuple[int] | st.SearchStrategy[int],
     zero_dimension: bool = False,
-) -> PhlowerTensor:
+    disable_dimension: bool = False,
+) -> PhlowerTensor | list[PhlowerTensor]:
     _shape = draw(shape)
 
-    array1 = draw(
-        extra_np.arrays(
-            dtype=np.dtypes.Float32DType(),
-            shape=_shape,
-        )
-    )
-    if zero_dimension:
+    if disable_dimension:
+        dimensions = None
+    elif zero_dimension:
         dimensions = {}
     else:
         dimensions = draw(
@@ -42,12 +52,22 @@ def random_phlower_tensors_with_same_dimension_and_shape(
         # To avoid zero dimension
         dimensions = [d + 1e-5 for d in dimensions]
 
-    return phlower_tensor(torch.from_numpy(array1), dimension=dimensions)
+    return phlower_tensor(
+        torch.from_numpy(
+            draw(
+                extra_np.arrays(
+                    dtype=np.dtypes.Float32DType(),
+                    shape=_shape,
+                )
+            )
+        ),
+        dimension=dimensions,
+    )
 
 
 @pytest.mark.parametrize("func", [torch.sin])
 @given(
-    value=random_phlower_tensors_with_same_dimension_and_shape(
+    value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
             st.integers(min_value=1, max_value=10), min_size=1, max_size=5
         ),
@@ -65,7 +85,7 @@ def test__torch_functions(value: PhlowerTensor, func: Callable):
 
 @pytest.mark.parametrize("func", [torch.sin])
 @given(
-    value=random_phlower_tensors_with_same_dimension_and_shape(
+    value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
             st.integers(min_value=1, max_value=10), min_size=1, max_size=5
         ),
@@ -80,7 +100,7 @@ def test__torch_functions_raise_error(value: PhlowerTensor, func: Callable):
 
 
 @given(
-    value=random_phlower_tensors_with_same_dimension_and_shape(
+    value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
             st.integers(min_value=1, max_value=10), min_size=1, max_size=5
         ),
@@ -130,3 +150,140 @@ def test__torch_squeeze(
     np.testing.assert_array_almost_equal(
         actual.dimension.numpy(), value.dimension.numpy(), decimal=5
     )
+
+
+@pytest.mark.parametrize(
+    "shape, shifts, dims",
+    [
+        ((3, 4, 5), 1, 0),
+        ((3, 4, 5), -1, 1),
+        ((3, 4, 5), 2, 2),
+        ((3, 4, 5), (1, -2, 3), (0, 1, 2)),
+    ],
+)
+@pytest.mark.parametrize("zero_dimension", [True, False])
+@given(dimensions=random_dimensions())
+def test__torch_roll(
+    dimensions: list[float],
+    shape: tuple[int, ...],
+    shifts: int | tuple[int, ...],
+    dims: int | tuple[int, ...],
+    zero_dimension: bool,
+):
+    value = phlower_tensor(
+        torch.rand(shape),
+        dimension=None if zero_dimension else dimensions,
+    )
+
+    actual: PhlowerTensor = torch.roll(value, shifts=shifts, dims=dims)
+
+    if zero_dimension:
+        assert actual.dimension is None
+    else:
+        np.testing.assert_array_almost_equal(
+            actual.dimension.numpy(),
+            value.dimension.numpy(),
+            decimal=5,
+        )
+
+    desired = torch.roll(value.to_tensor(), shifts=shifts, dims=dims)
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+# region torch.linalg.cross
+
+
+@given(
+    tensor1=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.tuples(
+            st.integers(min_value=10, max_value=10),
+            st.integers(min_value=3, max_value=3),
+        ),
+        zero_dimension=st.booleans(),
+    ),
+    tensor2=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.tuples(
+            st.integers(min_value=10, max_value=10),
+            st.integers(min_value=3, max_value=3),
+        ),
+        zero_dimension=st.booleans(),
+    ),
+)
+def test__torch_linalg_cross(tensor1: PhlowerTensor, tensor2: PhlowerTensor):
+    actual = torch.linalg.cross(tensor1, tensor2, dim=-1)
+
+    assert isinstance(actual, PhlowerTensor)
+    np.testing.assert_array_almost_equal(
+        actual.dimension.numpy(),
+        tensor1.dimension.numpy() + tensor2.dimension.numpy(),
+        decimal=5,
+    )
+
+    desired = torch.linalg.cross(
+        tensor1.to_tensor(), tensor2.to_tensor(), dim=-1
+    )
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+@given(
+    tensor=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.tuples(
+            st.integers(min_value=2, max_value=10),
+            st.integers(min_value=3, max_value=3),
+        ),
+        disable_dimension=st.booleans(),
+    )
+)
+def test__torch_linalg_cross_with_raw_tensor(tensor: PhlowerTensor):
+    tensor1 = tensor
+    tensor2 = torch.rand(tensor.shape)
+
+    actual: PhlowerTensor = torch.linalg.cross(tensor1, tensor2, dim=-1)
+    assert actual.dimension is None
+
+    desired = torch.linalg.cross(tensor1.to_tensor(), tensor2, dim=-1)
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+# endregion
+
+# region torch.linalg.norm, torch.linalg.vector_norm
+
+
+@pytest.mark.parametrize("func", [torch.linalg.norm, torch.linalg.vector_norm])
+@pytest.mark.parametrize("ord", [2, float("inf"), -float("inf"), 1, -1])
+@pytest.mark.parametrize("dim", [-1, 0, 1])
+@given(
+    tensor=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.tuples(
+            st.integers(min_value=2, max_value=10),
+            st.integers(min_value=1, max_value=10),
+        ),
+        zero_dimension=st.booleans(),
+    )
+)
+def test__torch_linalg_norm(
+    tensor: PhlowerTensor, func: Callable, ord: float, dim: int
+):
+    actual = func(tensor, ord=ord, dim=dim)
+    assert isinstance(actual, PhlowerTensor)
+
+    np.testing.assert_array_almost_equal(
+        actual.dimension.numpy(),
+        tensor.dimension.numpy(),
+        decimal=5,
+    )
+
+    desired = func(tensor.to_tensor(), ord=ord, dim=dim)
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+# endregion

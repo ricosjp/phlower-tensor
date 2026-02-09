@@ -20,6 +20,19 @@ from phlower_tensor.utils.exceptions import (
 )
 
 
+@st.composite
+def random_dimensions(draw: Callable) -> None:
+    dimensions = draw(
+        st.lists(
+            elements=st.floats(allow_nan=False, allow_infinity=False, width=16),
+            min_size=len(PhysicalDimensionSymbolType),
+            max_size=len(PhysicalDimensionSymbolType),
+        )
+    )
+    # To avoid zero dimension
+    return [d + 1e-5 for d in dimensions]
+
+
 @given(st.lists(st.floats(width=32), min_size=1, max_size=100))
 def test__create_default_phlower_tensor(values: list[float]):
     pht = phlower_tensor(values)
@@ -658,16 +671,21 @@ def test__stack_operation(
     assert stacked_pht.shape == torch_tensor.shape
 
 
-@pytest.mark.parametrize("op", [torch.max, torch.min])
+@pytest.mark.parametrize("op", [torch.max, torch.min, torch.median])
 @pytest.mark.parametrize("dim", [0, -1])
 @pytest.mark.parametrize("shape", [(2, 4), (2, 3, 4)])
-@pytest.mark.parametrize("dimension", [None, {"L": 3}])
-def test__min_max_operation_with_dim(
-    op: callable,
+@pytest.mark.parametrize("force_dimension_diable", [True, False])
+@given(dimension=random_dimensions())
+def test__tuple_return_type_operation_with_dim(
+    dimension: list[float],
+    op: Callable,
     dim: int,
     shape: tuple[int],
-    dimension: dict[str, int] | None,
+    force_dimension_diable: bool,
 ):
+    if force_dimension_diable:
+        dimension = None
+
     torch_tensor = torch.rand(shape)
     tensor = phlower_tensor(torch_tensor, dimension=dimension)
     ret = op(tensor, dim=dim)
