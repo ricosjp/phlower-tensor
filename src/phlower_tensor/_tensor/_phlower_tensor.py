@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable, Iterable, Sequence
-from typing import Any, NamedTuple, Self
+from typing import Any, Self
 
 import einops
 import numpy as np
@@ -686,7 +686,7 @@ class PhlowerTensor:
         types: list[type],
         args: tuple,
         kwargs: dict | None = None,
-    ) -> PhlowerTensor | NamedTuple[PhlowerTensor]:
+    ) -> PhlowerTensor | tuple[PhlowerTensor, PhlowerTensor]:
         if func.__name__ in _UNSUPPORTED_FUNCTION_NAMES:
             raise PhlowerUnsupportedTorchFunctionError(
                 f"Unsupported function: {func.__name__}."
@@ -731,7 +731,12 @@ class PhlowerTensor:
             )
 
         # Manage NamedTuple output from min or max function
-        if isinstance(ret, torch.return_types.max | torch.return_types.min):
+        if isinstance(
+            ret,
+            torch.return_types.max
+            | torch.return_types.min
+            | torch.return_types.median,
+        ):
             extremum = PhlowerTensor(
                 ret.values,
                 result_units,

@@ -477,6 +477,13 @@ def norm(
     return PhlowerDimensionTensor(inputs._tensor)
 
 
+@dimension_wrap_implements(torch.linalg.vector_norm)
+def _vector_norm(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor)
+
+
 @dimension_wrap_implements(torch.nn.functional.mse_loss)
 def mse_loss(
     inputs: PhlowerDimensionTensor,
@@ -658,6 +665,34 @@ def _torch_sin(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
 def _torch_matmul(
     inputs: PhlowerDimensionTensor | torch.Tensor,
     other: PhlowerDimensionTensor | torch.Tensor,
+) -> PhlowerDimensionTensor:
+    device = _determine_device(inputs, other)
+    _inputs, _other = _convert_phlower_dimension_tensors(
+        inputs, other, device=device
+    )
+    return PhlowerDimensionTensor(_inputs._tensor + _other._tensor)
+
+
+@dimension_wrap_implements(torch.median)
+def _torch_median(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor)
+
+
+@dimension_wrap_implements(torch.roll)
+def _torch_roll(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor)
+
+
+@dimension_wrap_implements(torch.linalg.cross)
+def _torch_linalg_cross(
+    inputs: PhlowerDimensionTensor | torch.Tensor,
+    other: PhlowerDimensionTensor | torch.Tensor,
+    *args: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
     device = _determine_device(inputs, other)
     _inputs, _other = _convert_phlower_dimension_tensors(
