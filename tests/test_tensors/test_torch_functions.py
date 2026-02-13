@@ -30,10 +30,21 @@ def random_dimensions(draw: Callable) -> list[float]:
 def random_phlower_tensor_with_same_dimension_and_shape(
     draw: Callable,
     shape: tuple[int] | st.SearchStrategy[int],
-    zero_dimension: bool = False,
-    disable_dimension: bool = False,
+    zero_dimension: bool | st.SearchStrategy[bool] = False,
+    disable_dimension: bool | st.SearchStrategy[bool] = False,
 ) -> PhlowerTensor | list[PhlowerTensor]:
     _shape = draw(shape)
+
+    zero_dimension = (
+        draw(zero_dimension)
+        if isinstance(zero_dimension, st.SearchStrategy)
+        else zero_dimension
+    )
+    disable_dimension = (
+        draw(disable_dimension)
+        if isinstance(disable_dimension, st.SearchStrategy)
+        else disable_dimension
+    )
 
     if disable_dimension:
         dimensions = None
@@ -235,7 +246,7 @@ def test__torch_linalg_cross(tensor1: PhlowerTensor, tensor2: PhlowerTensor):
             st.integers(min_value=2, max_value=10),
             st.integers(min_value=3, max_value=3),
         ),
-        disable_dimension=st.booleans(),
+        disable_dimension=True,
     )
 )
 def test__torch_linalg_cross_with_raw_tensor(tensor: PhlowerTensor):
@@ -344,6 +355,68 @@ def test__torch_clamp(value: PhlowerTensor, min_value: float, max_value: float):
     np.testing.assert_array_almost_equal(
         actual.numpy(), desired.numpy(), decimal=5
     )
+
+
+# endregion
+
+
+# region torch_eq
+
+
+@given(
+    values=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.lists(
+            st.integers(min_value=1, max_value=10), min_size=1, max_size=5
+        ),
+        zero_dimension=st.booleans(),
+        disable_dimension=st.booleans(),
+    )
+)
+def test__torch_eq(values: PhlowerTensor):
+    tensor1 = values
+    tensor2 = phlower_tensor(
+        values.to_tensor().detach().clone(), dimension=values.dimension
+    )
+
+    actual: PhlowerTensor = torch.eq(tensor1, tensor2)
+
+    if tensor1.has_dimension:
+        assert actual.dimension.is_dimensionless
+    else:
+        assert actual.dimension is None
+
+    desired = torch.eq(tensor1.to_tensor(), tensor2.to_tensor())
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+@pytest.mark.parametrize(
+    "dimension1, dimension2",
+    [
+        ({"L": 1.0}, {"L": 2.0}),
+        ({"M": 1.0}, {"M": 2.0}),
+        ({"T": 1.0}, {"T": 2.0, "L": 1.0}),
+        ({"L": 1.0, "I": 1.0}, {"L": 1.0, "T": 1.0}),
+    ],
+)
+def test__torch_eq_with_different_dimension(
+    dimension1: dict[str, float], dimension2: dict[str, float]
+):
+    tensor1 = phlower_tensor(
+        torch.tensor([1.0, 2.0, 3.0]),
+        dimension=dimension1,
+    )
+    tensor2 = phlower_tensor(
+        torch.tensor([1.0, 2.0, 3.0]),
+        dimension=dimension2,
+    )
+
+    with pytest.raises(
+        DimensionIncompatibleError,
+        match="Cannot compare tensors with different dimensions",
+    ):
+        _ = torch.eq(tensor1, tensor2)
 
 
 # endregion
