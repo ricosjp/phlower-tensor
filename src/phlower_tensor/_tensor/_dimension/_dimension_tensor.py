@@ -699,3 +699,24 @@ def _torch_linalg_cross(
         inputs, other, device=device
     )
     return PhlowerDimensionTensor(_inputs._tensor + _other._tensor)
+
+
+@dimension_wrap_implements(torch.eq)
+def _torch_eq(
+    inputs: PhlowerDimensionTensor,
+    others: PhlowerDimensionTensor,
+    *args: Any,
+    **kwards: Any,
+) -> PhlowerDimensionTensor:
+    if inputs != others:
+        raise DimensionIncompatibleError("Dimension mismatch in eq operation.")
+    return inputs
+
+
+@dimension_wrap_implements(torch.clamp)
+def _torch_clamp(
+    inputs: PhlowerDimensionTensor,
+    *args: Any,
+    **kwargs: Any,
+) -> PhlowerDimensionTensor:
+    return inputs
