@@ -14,7 +14,7 @@ from phlower_tensor.utils.exceptions import DimensionIncompatibleError
 
 
 @st.composite
-def random_dimensions(draw: Callable) -> None:
+def random_dimensions(draw: Callable) -> list[float]:
     dimensions = draw(
         st.lists(
             elements=st.floats(allow_nan=False, allow_infinity=False, width=16),
@@ -281,6 +281,66 @@ def test__torch_linalg_norm(
     )
 
     desired = func(tensor.to_tensor(), ord=ord, dim=dim)
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+# endregion
+
+
+# region test torch.clamp
+
+
+@pytest.mark.parametrize(
+    "values, min, max",
+    [
+        ([-0.5, 0.2, 1.5, 2.0], 0.0, 1.0),
+        ([-2.0, -1.0, 0.0, 0.5], -1.0, 0.0),
+        ([0.0, 0.5, 1.0, 1.5], 0.5, 1.5),
+    ],
+)
+@given(dimensions=random_dimensions())
+def test__torch_clamp_with_explicit_cases(
+    dimensions: list[float], values: list[float], min: float, max: float
+):
+    tensor = phlower_tensor(torch.tensor(values), dimension=dimensions)
+    actual = torch.clamp(tensor, min=min, max=max)
+
+    assert np.all(torch.min(actual).numpy() == min)
+    assert np.all(torch.max(actual).numpy() == max)
+
+    desired = torch.clamp(tensor.to_tensor(), min=min, max=max)
+
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+@given(
+    value=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.lists(
+            st.integers(min_value=1, max_value=10), min_size=1, max_size=5
+        ),
+        zero_dimension=st.booleans(),
+        disable_dimension=st.booleans(),
+    ),
+    min_value=st.floats(-10.0, 0.0),
+    max_value=st.floats(0.0, 10.0),
+)
+def test__torch_clamp(value: PhlowerTensor, min_value: float, max_value: float):
+    actual: PhlowerTensor = torch.clamp(value, min=min_value, max=max_value)
+
+    if value.has_dimension:
+        np.testing.assert_array_almost_equal(
+            actual.dimension.numpy(),
+            value.dimension.numpy(),
+            decimal=5,
+        )
+    else:
+        assert actual.dimension is None
+
+    desired = torch.clamp(value.to_tensor(), min=min_value, max=max_value)
     np.testing.assert_array_almost_equal(
         actual.numpy(), desired.numpy(), decimal=5
     )
