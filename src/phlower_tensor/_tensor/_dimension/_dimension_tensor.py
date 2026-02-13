@@ -708,9 +708,16 @@ def _torch_eq(
     *args: Any,
     **kwards: Any,
 ) -> PhlowerDimensionTensor:
+    device = _determine_device(inputs, others)
+    inputs, others = _convert_phlower_dimension_tensors(
+        inputs, others, device=device
+    )
     if inputs != others:
-        raise DimensionIncompatibleError("Dimension mismatch in eq operation.")
-    return inputs
+        raise DimensionIncompatibleError(
+            "Cannot compare tensors with different dimensions."
+            f" input: {inputs}, other: {others}"
+        )
+    return zero_dimension_tensor(device=device)
 
 
 @dimension_wrap_implements(torch.clamp)
