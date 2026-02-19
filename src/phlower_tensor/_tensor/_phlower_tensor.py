@@ -429,6 +429,23 @@ class PhlowerTensor:
         """
         return self._tensor.device
 
+    def dim(self) -> int:
+        """Number of dimensions
+
+        Returns:
+            torch.dim(): Number of dimensions
+        """
+        return self._tensor.dim()
+
+    @property
+    def ndim(self) -> int:
+        """Number of dimensions
+
+        Returns:
+            torch.ndim: Number of dimensions
+        """
+        return self._tensor.ndim
+
     def transpose(self, dim0: int, dim1: int) -> PhlowerTensor:
         """Transpose the tensor.
 
