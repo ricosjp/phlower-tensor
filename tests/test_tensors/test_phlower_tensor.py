@@ -979,4 +979,18 @@ def test__getitem_for_nodal_phlower_tensor(
     )
 
 
+@pytest.mark.parametrize(
+    "shape",
+    [
+        (2, 3),
+        (1,),
+    ],
+)
+def test__dim_and_ndim(shape: tuple[int]):
+    base_tensor = torch.rand(*shape)
+    pht = phlower_tensor(base_tensor)
+    assert pht.ndim == base_tensor.ndim
+    assert pht.dim() == base_tensor.dim()
+
+
 # endregion
