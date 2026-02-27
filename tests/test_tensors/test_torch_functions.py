@@ -420,3 +420,97 @@ def test__torch_eq_with_different_dimension(
 
 
 # endregion
+
+
+# region torch.linalg.cholesky
+
+
+@given(dimensions=random_dimensions())
+def test__torch_cholesky(dimensions: list[float]):
+    x = phlower_tensor(
+        torch.tensor([[1.0, 0.5], [0.5, 1.0]]), dimension=dimensions
+    )
+
+    L = torch.linalg.cholesky(x)
+    desired = torch.linalg.cholesky(x.to_tensor())
+
+    np.testing.assert_array_almost_equal(L.numpy(), desired.numpy(), decimal=5)
+
+    np.testing.assert_array_almost_equal(
+        L.dimension.numpy(), x.dimension.numpy() * 0.5, decimal=3
+    )
+
+
+@given(dimensions=random_dimensions())
+def test__torch_cholesky_inverse(dimensions: list[float]):
+    # https://docs.pytorch.org/docs/stable/generated/torch.cholesky_inverse.html
+    A = torch.randn(3, 3, dtype=torch.float32)
+    A = A @ A.T + torch.eye(3, dtype=torch.float32) * 1e-3
+    A = phlower_tensor(A, dimension=dimensions)
+    L = torch.linalg.cholesky(A)
+
+    Ainv = torch.cholesky_inverse(L)
+    assert isinstance(Ainv, PhlowerTensor)
+
+    desired = torch.cholesky_inverse(L.to_tensor())
+    assert torch.dist(Ainv.to_tensor(), desired) < 1e-3
+
+    np.testing.assert_array_almost_equal(
+        Ainv.dimension.numpy(),
+        A.dimension.numpy() * -1,
+        decimal=3,
+    )
+
+
+@given(dimensions1=random_dimensions(), dimensions2=random_dimensions())
+def test__torch_cholesky_solve(
+    dimensions1: list[float], dimensions2: list[float]
+):
+    A = torch.randn(3, 3, dtype=torch.float32)
+    A = A @ A.T + torch.eye(3, dtype=torch.float32) * 1e-3
+    A = phlower_tensor(A, dimension=dimensions1)
+    L = torch.linalg.cholesky(A)
+    B = phlower_tensor(torch.randn(3, 2), dimension=dimensions2)
+
+    X = torch.cholesky_solve(B, L)
+    assert isinstance(X, PhlowerTensor)
+
+    desired = torch.cholesky_solve(B.to_tensor(), L.to_tensor())
+    assert torch.dist(X.to_tensor(), desired) < 1e-3
+
+    B_restored = torch.matmul(A, X)
+    np.testing.assert_array_almost_equal(
+        B_restored.numpy(), B.numpy(), decimal=3
+    )
+
+    np.testing.assert_array_almost_equal(
+        B_restored.dimension.numpy(), B.dimension.numpy(), decimal=3
+    )
+
+
+# endregion
+
+
+# region torch.linalg.inv
+
+
+@given(dimensions=random_dimensions())
+def test__torch_inv(dimensions: list[float]):
+    A = torch.randn(3, 3, dtype=torch.float32)
+    A = A @ A.T + torch.eye(3, dtype=torch.float32) * 1e-3
+    A = phlower_tensor(A, dimension=dimensions)
+
+    Ainv = torch.linalg.inv(A)
+    assert isinstance(Ainv, PhlowerTensor)
+
+    desired = torch.linalg.inv(A.to_tensor())
+    assert torch.dist(Ainv.to_tensor(), desired) < 1e-3
+
+    np.testing.assert_array_almost_equal(
+        Ainv.dimension.numpy(),
+        A.dimension.numpy() * -1,
+        decimal=3,
+    )
+
+
+# endregion
