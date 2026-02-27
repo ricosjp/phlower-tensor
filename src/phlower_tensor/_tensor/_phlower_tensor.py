@@ -728,6 +728,64 @@ class PhlowerTensor:
             is_voxel=self.is_voxel,
         )
 
+    def index_add(
+        self,
+        dim: int,
+        index: torch.Tensor,
+        source: PhlowerTensor | torch.Tensor,
+        *,
+        alpha: int = 1,
+    ) -> PhlowerTensor:
+        """
+        Out-of-place index add.
+
+        Returns:
+            PhlowerTensor: Tensor after index add.
+        """
+        if _has_dimension([self, source]):
+            _dimensions = _recursive_resolve(
+                [self, source], "_dimension_tensor", allow_none=False
+            )
+            # check dimension compatibility
+            _ = torch.add(*_dimensions)
+
+        source = (
+            source.to_tensor() if isinstance(source, PhlowerTensor) else source
+        )
+        new_tensor = self._tensor.index_add(dim, index, source, alpha=alpha)
+        return PhlowerTensor.from_pattern(
+            new_tensor,
+            dimension_tensor=self.dimension,
+            pattern=self.shape_pattern,
+        )
+
+    def index_add_(
+        self,
+        dim: int,
+        index: torch.Tensor,
+        source: PhlowerTensor | torch.Tensor,
+        *,
+        alpha: int = 1,
+    ) -> Self:
+        """
+        In-place index add.
+
+        Returns:
+            Self: Tensor after index add.
+        """
+        if _has_dimension([self, source]):
+            _dimensions = _recursive_resolve(
+                [self, source], "_dimension_tensor", allow_none=False
+            )
+            # check dimension compatibility
+            _ = torch.add(*_dimensions)
+
+        source = (
+            source.to_tensor() if isinstance(source, PhlowerTensor) else source
+        )
+        self._tensor.index_add_(dim, index, source, alpha=alpha)
+        return self
+
     @classmethod
     def __torch_function__(
         cls,
