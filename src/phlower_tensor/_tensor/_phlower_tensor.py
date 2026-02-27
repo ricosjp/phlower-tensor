@@ -446,6 +446,20 @@ class PhlowerTensor:
         """
         return self._tensor.ndim
 
+    @property
+    def T(self) -> PhlowerTensor:
+        """Transpose the tensor.
+
+        Returns:
+            PhlowerTensor: Transposed tensor.
+        """
+        return PhlowerTensor(
+            tensor=self._tensor.T,
+            dimension_tensor=self._dimension_tensor,
+            is_time_series=self.is_time_series,
+            is_voxel=self.is_voxel,
+        )
+
     def transpose(self, dim0: int, dim1: int) -> PhlowerTensor:
         """Transpose the tensor.
 

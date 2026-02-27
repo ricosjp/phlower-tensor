@@ -727,3 +727,40 @@ def _torch_clamp(
     **kwargs: Any,
 ) -> PhlowerDimensionTensor:
     return inputs
+
+
+@dimension_wrap_implements(torch.linalg.cholesky)
+def _torch_cholesky(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor / 2.0)
+
+
+@dimension_wrap_implements(torch.cholesky_inverse)
+def _torch_cholesky_inverse(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor * -2.0)
+
+
+@dimension_wrap_implements(torch.cholesky_solve)
+def _torch_cholesky_solve(
+    input: PhlowerDimensionTensor | torch.Tensor,
+    input2: PhlowerDimensionTensor | torch.Tensor,
+    *args: Any,
+    **kwargs: Any,
+) -> PhlowerDimensionTensor:
+    # input: B
+    # input2: L, A = L @ L.T
+    # output: A^-1 @ B = L^-T @ L^-1 @ B
+
+    device = _determine_device(input, input2)
+    B, L = _convert_phlower_dimension_tensors(input, input2, device=device)
+    return PhlowerDimensionTensor(B._tensor - L._tensor * 2.0)
+
+
+@dimension_wrap_implements(torch.linalg.inv)
+def _torch_inv(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor * -1.0)
