@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable, Sequence
-from typing import Any, overload
+from typing import Any, Self, overload
 
 import numpy as np
 import torch
@@ -146,6 +146,22 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
     def as_pattern(self, pattern: str) -> PhlowerTensor: ...
     def clone(self) -> PhlowerTensor: ...
     def to_phlower_array(self) -> IPhlowerArray: ...
+    def index_add(
+        self,
+        dim: int,
+        index: torch.Tensor,
+        source: torch.Tensor | PhlowerTensor,
+        *,
+        alpha: int = 1,
+    ) -> PhlowerTensor: ...
+    def index_add_(
+        self,
+        dim: int,
+        index: torch.Tensor,
+        source: torch.Tensor | PhlowerTensor,
+        *,
+        alpha: int = 1,
+    ) -> Self: ...
     def slice_time(
         self,
         indices: int | slice | list[int] | np.ndarray | torch.Tensor,
