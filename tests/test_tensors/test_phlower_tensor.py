@@ -804,6 +804,91 @@ def test__rmatmul_with_torch_tensor():
     assert cp.dimension == phlower_dimension_tensor({"L": -1, "T": 1})
 
 
+@pytest.mark.parametrize(
+    "shape, repeats, is_time_series, is_voxel",
+    [
+        ((3, 4), (2, 3), False, False),
+        ((5, 3, 1), (2, 3, 1), True, False),
+        ((10, 10, 10, 16), (2, 3, 1, 1), False, True),
+        ((4, 10, 10, 10, 16), (2, 3, 1, 1, 1), True, True),
+    ],
+)
+@given(
+    dimension=random_dimensions(),
+)
+def test__repeat_save_original_metadata(
+    dimension: list[float],
+    shape: tuple[int, ...],
+    repeats: tuple[int, int],
+    is_time_series: bool,
+    is_voxel: bool,
+):
+    a = phlower_tensor(
+        torch.rand(*shape),
+        dimension=dimension,
+        is_time_series=is_time_series,
+        is_voxel=is_voxel,
+    )
+    repeated = a.repeat(*repeats)
+    desired = a.to_tensor().repeat(*repeats)
+
+    np.testing.assert_array_almost_equal(repeated, desired)
+    assert repeated.dimension == a.dimension
+    assert repeated.is_time_series == is_time_series
+    assert repeated.is_voxel == is_voxel
+
+
+@pytest.mark.parametrize(
+    "shape, repeats, is_time_series, is_voxel",
+    [
+        ((3, 4), (2, 3), False, False),
+        ((3, 4), (1, 3, 2), True, False),
+        ((10, 3, 1), (2, 1, 3, 2), True, False),
+        ((10, 1), (2, 2, 2, 1), False, True),
+        ((5, 1), (2, 3, 1, 1, 1), True, True),
+    ],
+)
+@given(
+    dimension=random_dimensions(),
+)
+def test__repeat_with_force_metadata_update(
+    shape: tuple[int, ...],
+    repeats: tuple[int, ...],
+    dimension: list[float],
+    is_time_series: bool,
+    is_voxel: bool,
+):
+    a = phlower_tensor(torch.rand(*shape), dimension=dimension)
+    repeated = a.repeat(
+        *repeats, is_time_series=is_time_series, is_voxel=is_voxel
+    )
+    desired = a.to_tensor().repeat(*repeats)
+
+    np.testing.assert_array_almost_equal(repeated, desired)
+    assert repeated.dimension == a.dimension
+    assert repeated.is_time_series == is_time_series
+    assert repeated.is_voxel == is_voxel
+
+
+@pytest.mark.parametrize(
+    "shape, repeats",
+    [
+        ((3, 4), (2, 2, 3)),
+        ((3, 4), (1, 1, 1, 3, 2)),
+    ],
+)
+def test__not_allowed_repeats_without_specific_input(
+    shape: tuple[int, ...],
+    repeats: tuple[int, ...],
+):
+    x = phlower_tensor(torch.rand(*shape))
+
+    with pytest.raises(
+        ValueError, match="is_time_series and is_voxel must be specified"
+    ):
+        x.repeat(*repeats)
+
+
 # region Test for __getitem__
 
 

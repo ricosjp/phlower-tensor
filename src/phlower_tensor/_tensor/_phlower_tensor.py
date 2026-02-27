@@ -593,6 +593,38 @@ class PhlowerTensor:
             is_voxel=is_voxel,
         )
 
+    def repeat(
+        self,
+        *repeats: int,
+        is_time_series: bool | None = None,
+        is_voxel: bool | None = None,
+    ) -> PhlowerTensor:
+        """Repeat the tensor.
+
+        Returns:
+            PhlowerTensor: Repeated tensor.
+        """
+        if len(repeats) > self._tensor.dim():
+            if (is_time_series is None) or (is_voxel is None):
+                raise ValueError(
+                    "is_time_series and is_voxel must be specified when "
+                    "the number of repeats is greater than or equal to "
+                    "the number of dimensions."
+                )
+        repeated_tensor = self._tensor.repeat(*repeats)
+        is_time_series = (
+            is_time_series
+            if is_time_series is not None
+            else self.is_time_series
+        )
+        is_voxel = is_voxel if is_voxel is not None else self.is_voxel
+        return PhlowerTensor(
+            repeated_tensor,
+            dimension_tensor=self._dimension_tensor,
+            is_time_series=is_time_series,
+            is_voxel=is_voxel,
+        )
+
     def slice_time(
         self,
         indices: int | slice | list[int] | np.ndarray | torch.Tensor,
