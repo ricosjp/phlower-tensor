@@ -164,6 +164,18 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
         *,
         alpha: int = 1,
     ) -> Self: ...
+    def scatter_add(
+        self,
+        dim: int,
+        index: torch.Tensor,
+        source: torch.Tensor | PhlowerTensor,
+    ) -> PhlowerTensor: ...
+    def scatter_add_(
+        self,
+        dim: int,
+        index: torch.Tensor,
+        source: torch.Tensor | PhlowerTensor,
+    ) -> Self: ...
     def slice_time(
         self,
         indices: int | slice | list[int] | np.ndarray | torch.Tensor,
