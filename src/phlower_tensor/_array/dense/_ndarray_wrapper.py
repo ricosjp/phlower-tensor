@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Literal
 
 import numpy as np
 import torch
@@ -56,8 +57,14 @@ class NdArrayWrapper(IPhlowerArray[DenseArrayType]):
         use_diagonal: bool = False,
         **kwards,
     ) -> IPhlowerArray:
+        if skip_nan:
+            raise ValueError(
+                "skip_nan=True is not supported anymore."
+                "Please use skip_nan option in reshape method instead."
+            )
+
         reshaped = self.reshape(
-            componentwise=componentwise, skip_nan=skip_nan
+            componentwise=componentwise, skip_nan=False
         ).to_numpy()
         result = np.reshape(function(reshaped), self.shape)
         return NdArrayWrapper(
@@ -83,10 +90,12 @@ class NdArrayWrapper(IPhlowerArray[DenseArrayType]):
     def _reshape(
         self, componentwise: bool, *, skip_nan: bool = False, **kwards
     ) -> np.ndarray:
+        # HACK: these are hard to understrand and questionable.
+        # But, we keep them to avoid backward compatibility issue.
+        # we should consider to skip_nan option outside of this method.
+
         if componentwise:
-            reshaped = np.reshape(
-                self.data, (np.prod(self.shape[:-1]), self.shape[-1])
-            )
+            reshaped = np.reshape(self.data, (-1, self.shape[-1]))
         else:
             reshaped = np.reshape(self.data, (-1, 1))
 
@@ -105,7 +114,13 @@ class NdArrayWrapper(IPhlowerArray[DenseArrayType]):
         self,
         device: str | torch.device | None = None,
         non_blocking: bool = False,
+        sparse_layout: Literal["coo", "csr", "csc"] | None = None,
     ) -> torch.Tensor:
+        if sparse_layout is not None:
+            raise ValueError(
+                "sparse_layout option is not valid for dense array."
+                f"{sparse_layout=}"
+            )
         return torch.from_numpy(self.data).to(
             device=device, non_blocking=non_blocking
         )

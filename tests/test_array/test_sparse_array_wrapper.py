@@ -5,6 +5,7 @@ import hypothesis.strategies as st
 import numpy as np
 import pytest
 import scipy.sparse as sp
+import torch
 from hypothesis import given
 
 from phlower_tensor._array import phlower_array
@@ -144,3 +145,28 @@ def test__sparse_array_apply_not_allowed_to_use_diagonal(arr: sp.coo_array):
     assert "Cannot set use_diagonal=True in self.apply function" in str(
         ex.value
     )
+
+
+@given(
+    arr=random_sparse_array(
+        arr_shape=st.lists(
+            st.integers(min_value=1, max_value=100), min_size=2, max_size=2
+        ),
+        sp_type=st.sampled_from(["coo", "csr", "csc"]),
+    )
+)
+@pytest.mark.parametrize(
+    "layout, desired",
+    [
+        ("coo", torch.sparse_coo),
+        ("csr", torch.sparse_csr),
+        ("csc", torch.sparse_csc),
+    ],
+)
+def test__convert_to_sparse_tensor_following_to_layout(
+    layout: str, desired: torch.layout, arr: sp.coo_array
+):
+    ph_array = phlower_array(arr)
+    _tensor = ph_array.to_tensor(sparse_layout=layout)
+
+    assert _tensor.layout == desired

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Literal
 
 import numpy as np
 import scipy.sparse as sp
@@ -119,6 +120,7 @@ class SparseArrayWrapper(IPhlowerArray[SparseArrayType]):
         self,
         device: str | torch.device | None = None,
         non_blocking: bool = False,
+        sparse_layout: Literal["coo", "csr", "csc"] | None = None,
     ) -> torch.Tensor:
         _coo = self.to_coo()
         sparse_tensor = torch.sparse_coo_tensor(
@@ -132,6 +134,17 @@ class SparseArrayWrapper(IPhlowerArray[SparseArrayType]):
             _coo.shape,
         )
         _tensor = sparse_tensor.coalesce()
+
+        match sparse_layout:
+            case "coo" | None:
+                pass
+            case "csr":
+                _tensor = _tensor.to_sparse_csr()
+            case "csc":
+                _tensor = _tensor.to_sparse_csc()
+            case _:
+                raise NotImplementedError(f"{sparse_layout} is not implemented")
+
         return _tensor.to(device=device, non_blocking=non_blocking)
 
     def to_numpy(self) -> SparseArrayType:

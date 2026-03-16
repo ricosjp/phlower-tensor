@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 
 import torch
 
@@ -86,6 +86,7 @@ class IPhlowerArray(Generic[T], metaclass=abc.ABCMeta):
         self,
         device: str | torch.device | None = None,
         non_blocking: bool = False,
+        sparse_layout: Literal["coo", "csr", "csc"] | None = None,
     ) -> torch.Tensor: ...
 
     @abc.abstractmethod
