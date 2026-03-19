@@ -661,6 +661,15 @@ def _torch_sin(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
     return inputs
 
 
+@dimension_wrap_implements(torch.cos)
+def _torch_cos(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    if not inputs.is_dimensionless:
+        raise DimensionIncompatibleError(
+            f"Should be dimensionless to apply cos but {inputs}"
+        )
+    return inputs
+
+
 @dimension_wrap_implements(torch.matmul)
 def _torch_matmul(
     inputs: PhlowerDimensionTensor | torch.Tensor,

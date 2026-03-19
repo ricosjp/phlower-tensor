@@ -85,7 +85,7 @@ def random_phlower_tensor_with_same_dimension_and_shape(
         zero_dimension=True,
     )
 )
-def test__torch_functions(value: PhlowerTensor, func: Callable):
+def test__torch_functions_sin(value: PhlowerTensor, func: Callable):
     actual = func(value)
 
     desired = torch.from_numpy(np.sin(value.numpy()))
@@ -94,7 +94,25 @@ def test__torch_functions(value: PhlowerTensor, func: Callable):
     )
 
 
-@pytest.mark.parametrize("func", [torch.sin])
+@pytest.mark.parametrize("func", [torch.cos])
+@given(
+    value=random_phlower_tensor_with_same_dimension_and_shape(
+        shape=st.lists(
+            st.integers(min_value=1, max_value=10), min_size=1, max_size=5
+        ),
+        zero_dimension=True,
+    )
+)
+def test__torch_functions_cos(value: PhlowerTensor, func: Callable):
+    actual = func(value)
+
+    desired = torch.from_numpy(np.cos(value.numpy()))
+    np.testing.assert_array_almost_equal(
+        actual.numpy(), desired.numpy(), decimal=5
+    )
+
+
+@pytest.mark.parametrize("func", [torch.sin, torch.cos])
 @given(
     value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
