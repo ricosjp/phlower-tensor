@@ -920,7 +920,7 @@ def test__scatter_add_(
     )
     org = a.to_tensor()
 
-    indices = torch.randint(0, shape[0], shape, dtype=torch.int32)
+    indices = torch.randint(0, shape[0], shape)
     updates = phlower_tensor(torch.rand(*shape), dimension=dimension)
     a.scatter_add_(0, indices, updates)
 
@@ -957,7 +957,7 @@ def test__scatter_add(
         is_voxel=is_voxel,
     )
 
-    indices = torch.randint(0, shape[0], shape, dtype=torch.int32)
+    indices = torch.randint(0, shape[0], shape)
     updates = phlower_tensor(torch.rand(*shape), dimension=dimension)
     actual = a.scatter_add(0, indices, updates)
     desired = a.to_tensor().scatter_add(0, indices, updates.to_tensor())

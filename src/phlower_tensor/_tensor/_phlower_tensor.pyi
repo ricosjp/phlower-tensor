@@ -167,13 +167,13 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
     def scatter_add(
         self,
         dim: int,
-        index: torch.Tensor,
+        index: torch.LongTensor,
         source: torch.Tensor | PhlowerTensor,
     ) -> PhlowerTensor: ...
     def scatter_add_(
         self,
         dim: int,
-        index: torch.Tensor,
+        index: torch.LongTensor,
         source: torch.Tensor | PhlowerTensor,
     ) -> Self: ...
     def slice_time(
