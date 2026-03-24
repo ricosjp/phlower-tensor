@@ -803,7 +803,7 @@ class PhlowerTensor:
     def scatter_add(
         self,
         dim: int,
-        index: torch.Tensor,
+        index: torch.LongTensor,
         source: PhlowerTensor | torch.Tensor,
     ) -> PhlowerTensor:
         """
@@ -832,7 +832,7 @@ class PhlowerTensor:
     def scatter_add_(
         self,
         dim: int,
-        index: torch.Tensor,
+        index: torch.LongTensor,
         source: PhlowerTensor | torch.Tensor,
     ) -> Self:
         """
