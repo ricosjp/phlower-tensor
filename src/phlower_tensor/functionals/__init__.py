@@ -8,12 +8,12 @@ from ._functions import (
     inner_product,
     spatial_mean,
     spatial_sum,
-    spmm,
     squeeze,
     tensor_product,
     tensor_times_scalar,
     time_series_to_features,
     to_batch_node_feature,
 )
+from ._spmm import spmm
 from ._to_batch import to_batch
 from ._unbatch import unbatch

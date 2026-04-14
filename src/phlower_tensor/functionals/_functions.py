@@ -12,36 +12,6 @@ from phlower_tensor._tensor import (
 from phlower_tensor.utils.exceptions import PhlowerIncompatibleTensorError
 
 
-def spmm(
-    sparse: PhlowerTensor, x: PhlowerTensor, repeat: int = 1
-) -> PhlowerTensor:
-    """
-    Computes sparse matrix times dense tensor along with the vertex axis.
-
-    Args:
-        sparse : PhlowerTensor:
-            Sparse tensor.
-        x : PhlowerTensor
-            Dense tensor.
-        repeat : int, optional
-            The number of repetitions for multiplication. The default is 1.
-    Returns:
-        PhlowerTensor:
-            Resultant tensor.
-    """
-    h, resultant_pattern = x.to_vertexwise()
-    restore_pattern = f"{resultant_pattern} -> {x.shape_pattern.get_pattern()}"
-    restore_axes_length = x.shape_pattern.get_pattern_to_size(drop_last=True)
-    if (
-        symbol := x.shape_pattern.n_nodes_pattern_symbol
-    ) in restore_axes_length:
-        restore_axes_length[symbol] = sparse.shape[0]
-
-    for _ in range(repeat):
-        h = torch.sparse.mm(sparse, h)
-    return h.rearrange(restore_pattern, **restore_axes_length)
-
-
 def time_series_to_features(arg: PhlowerTensor) -> PhlowerTensor:
     """
     Compute time_series_to_features for phlower tensors.
