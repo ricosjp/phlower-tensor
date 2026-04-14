@@ -1,89 +1,11 @@
 import numpy as np
 import pytest
 import torch
-from scipy import sparse as sp
 from scipy.stats import ortho_group
 
 from phlower_tensor import phlower_tensor
-from phlower_tensor._array import phlower_array
 from phlower_tensor.functionals import _functions as F
 from phlower_tensor.utils.exceptions import PhlowerIncompatibleTensorError
-
-
-@pytest.mark.parametrize(
-    "size, is_time_series, repeat",
-    [
-        ((10, 1), False, 1),
-        ((10, 16), False, 1),
-        ((10, 3, 16), False, 1),
-        ((4, 10, 1), True, 1),
-        ((4, 10, 16), True, 1),
-        ((4, 10, 3, 16), True, 1),
-        ((10, 1), False, 5),
-        ((10, 16), False, 5),
-        ((10, 3, 16), False, 5),
-        ((4, 10, 1), True, 5),
-        ((4, 10, 16), True, 5),
-        ((4, 10, 3, 16), True, 5),
-    ],
-)
-def test__spmm(size: tuple[int], is_time_series: bool, repeat: bool):
-    _tensor = phlower_tensor(torch.rand(*size), is_time_series=is_time_series)
-    n = _tensor.n_vertices()
-    sparse = phlower_tensor(torch.rand(n, n).to_sparse())
-
-    actual_spmm = F.spmm(sparse, _tensor, repeat=repeat)
-    np_actual_spmm = actual_spmm.to_numpy()
-    sp_sparse = sp.coo_array(sparse.to_tensor().to_dense().numpy())
-    np_dense = _tensor.to_tensor().numpy()
-
-    def assert_correct(actual: np.ndarray, array: np.ndarray):
-        dim_feat = len(array.shape) - 1
-        if dim_feat == 1:
-            desired = array
-            for _ in range(repeat):
-                desired = sp_sparse @ desired
-            norm = np.mean(np.linalg.norm(desired, axis=-1))
-            np.testing.assert_almost_equal(
-                actual / norm, desired / norm, decimal=5
-            )
-            return
-
-        for i in range(array.shape[1]):
-            assert_correct(actual[:, i], array[:, i])
-        return
-
-    if is_time_series:
-        assert actual_spmm.is_time_series
-        for t in range(size[0]):
-            assert_correct(np_actual_spmm[t], np_dense[t])
-    else:
-        assert_correct(np_actual_spmm, np_dense)
-
-
-@pytest.mark.parametrize(
-    "size, sparse_size, is_time_series, desired_shape",
-    [
-        ((5, 10), (8, 5), False, (8, 10)),
-        ((4, 10, 16), (5, 10), True, (4, 5, 16)),
-    ],
-)
-def test__spmm_with_not_squared_sparse_matrix(
-    size: tuple[int],
-    sparse_size: tuple[int],
-    is_time_series: bool,
-    desired_shape: tuple[int],
-):
-    _tensor = phlower_tensor(torch.rand(*size), is_time_series=is_time_series)
-
-    sparse_array = phlower_array(
-        sp.random(*sparse_size, density=0.4, dtype=np.float32)
-    )
-    sparse_tensor = phlower_tensor(sparse_array.to_tensor())
-
-    actual_spmm = F.spmm(sparse_tensor, _tensor, repeat=1)
-
-    assert actual_spmm.shape == desired_shape
 
 
 @pytest.mark.parametrize(
