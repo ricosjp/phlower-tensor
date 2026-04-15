@@ -7,6 +7,7 @@ from collections.abc import (
     KeysView,
     Sequence,
 )
+from typing import TypeVar, overload
 
 import torch
 
@@ -15,6 +16,8 @@ from phlower_tensor._tensor import PhlowerTensor
 from phlower_tensor.utils.typing import ArrayDataType
 
 _ComparableType = torch.Tensor | PhlowerTensor | float | int
+
+V = TypeVar("V")
 
 
 class IPhlowerTensorCollections(metaclass=abc.ABCMeta):
@@ -72,8 +75,13 @@ class IPhlowerTensorCollections(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def items(self) -> ItemsView[str, PhlowerTensor]: ...
 
+    @overload
     @abc.abstractmethod
-    def pop(self, key: str, default: PhlowerTensor | None = None): ...
+    def pop(self, key: str) -> PhlowerTensor: ...
+
+    @overload
+    @abc.abstractmethod
+    def pop(self, key: str, default: V) -> PhlowerTensor | V: ...
 
     @abc.abstractmethod
     def sum(self, weights: dict[str, float] | None = None) -> PhlowerTensor: ...

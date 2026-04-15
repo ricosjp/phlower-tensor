@@ -760,3 +760,32 @@ def test__collections_mean_with_weights(
         actual.numpy(),
         desired.numpy(),
     )
+
+
+def test__collections_pop():
+    orig = {
+        "a": np.random.rand(5, 4),
+        "b": np.random.rand(5, 4),
+        "c": np.random.rand(5, 4),
+    }
+    data = phlower_tensor_collection(orig)
+
+    with pytest.raises(KeyError, match="missing"):
+        data.pop("missing")
+
+    # pop existing key
+    popped = data.pop("a")
+    assert "a" not in data
+    np.testing.assert_array_almost_equal(popped.numpy(), orig["a"])
+
+    # pop missing key with default value
+    popped_with_default = data.pop("missing", None)
+    assert "missing" not in data
+    assert popped_with_default is None
+
+    # pop existing key with default value (default should be ignored)
+    popped_existing_with_default = data.pop("b", None)
+    assert "b" not in data
+    np.testing.assert_array_almost_equal(
+        popped_existing_with_default.numpy(), orig["b"]
+    )
