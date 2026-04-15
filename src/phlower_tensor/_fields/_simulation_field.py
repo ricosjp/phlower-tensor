@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import ItemsView, KeysView
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import torch
 
@@ -15,7 +15,10 @@ if TYPE_CHECKING:
     )
 
 
-class ISimulationField(metaclass=abc.ABCMeta):
+T = TypeVar("T")
+
+
+class ISimulationField(Generic[T], metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def __getitem__(self, name: str) -> PhlowerTensor: ...
 
@@ -37,10 +40,13 @@ class ISimulationField(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def to(
         self, device: str | torch.device, non_blocking: bool = False
-    ) -> SimulationField: ...
+    ) -> ISimulationField[T]: ...
+
+    @abc.abstractmethod
+    def get_mesh(self) -> T: ...
 
 
-class SimulationField(ISimulationField):
+class SimulationField(ISimulationField[None]):
     def __init__(
         self,
         field_tensors: IPhlowerTensorCollections,
@@ -81,13 +87,16 @@ class SimulationField(ISimulationField):
 
     def to(
         self, device: str | torch.device, non_blocking: bool = False
-    ) -> SimulationField:
+    ) -> ISimulationField:
         return SimulationField(
             field_tensors=self._field_tensors.to(
                 device, non_blocking=non_blocking
             ),
             batch_info=self._batch_info,
         )
+
+    def get_mesh(self) -> None:
+        return None
 
     # HACK: Under construction
     # def calculate_laplacians(self, target: PhlowerTensor):

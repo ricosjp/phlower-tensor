@@ -8,13 +8,14 @@ from collections.abc import (
     Sequence,
     ValuesView,
 )
-from typing import cast
+from typing import TypeVar, cast, overload
 
 import numpy as np
 import torch
 
 from phlower_tensor._array import IPhlowerArray
 from phlower_tensor._tensor import PhlowerTensor, phlower_tensor
+from phlower_tensor.utils.sentinel import _MissingSentinel, _MissingType
 from phlower_tensor.utils.typing import ArrayDataType
 
 from ._interface import IPhlowerTensorCollections, _ComparableType
@@ -29,6 +30,9 @@ def phlower_tensor_collection(
     raise NotImplementedError(
         f"input data type: {type(values)} cannot be converted."
     )
+
+
+V = TypeVar("V")
 
 
 class PhlowerDictTensors(IPhlowerTensorCollections):
@@ -143,9 +147,19 @@ class PhlowerDictTensors(IPhlowerTensorCollections):
     def items(self) -> ItemsView[str, PhlowerTensor]:
         return self._data.items()
 
+    @overload
+    def pop(self, key: str) -> PhlowerTensor: ...
+
+    @overload
+    def pop(self, key: str, default: V) -> V: ...
+
     def pop(
-        self, key: str, default: PhlowerTensor | None = None
-    ) -> PhlowerTensor | None:
+        self, key: str, default: V | _MissingType = _MissingSentinel
+    ) -> V | PhlowerTensor:
+        if default is _MissingSentinel:
+            return self._data.pop(key)
+
+        default = cast(V, default)
         return self._data.pop(key, default)
 
     def __getitem__(self, key: str) -> PhlowerTensor:
