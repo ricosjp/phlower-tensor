@@ -773,3 +773,10 @@ def _torch_inv(
     inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
     return PhlowerDimensionTensor(inputs._tensor * -1.0)
+
+
+@dimension_wrap_implements(torch.linalg.pinv)
+def _pinv(
+    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(inputs._tensor * -1.0)
