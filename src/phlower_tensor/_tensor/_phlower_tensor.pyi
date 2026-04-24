@@ -168,6 +168,18 @@ class PhlowerTensor(metaclass=abc.ABCMeta):
         *,
         alpha: int = 1,
     ) -> Self: ...
+    def index_put(
+        self,
+        indices: tuple[torch.LongTensor],
+        values: torch.Tensor | PhlowerTensor,
+        accumulate: bool = False,
+    ) -> PhlowerTensor: ...
+    def index_put_(
+        self,
+        indices: tuple[torch.LongTensor],
+        values: torch.Tensor | PhlowerTensor,
+        accumulate: bool = False,
+    ) -> Self: ...
     def scatter_add(
         self,
         dim: int,

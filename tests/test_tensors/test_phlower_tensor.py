@@ -903,6 +903,102 @@ def test__index_add_raise_dimension_incompatible_error():
         ((2, 10, 10, 10, 3, 4), True, True),
     ],
 )
+@pytest.mark.parametrize("accumulate", [True, False])
+@given(
+    dimension=random_dimensions(),
+)
+def test__index_put_(
+    dimension: list[float],
+    shape: tuple[int],
+    is_time_series: bool,
+    is_voxel: bool,
+    accumulate: bool,
+):
+    a = phlower_tensor(
+        torch.rand(*shape),
+        dimension=dimension,
+        is_time_series=is_time_series,
+        is_voxel=is_voxel,
+    )
+    org = a.to_tensor()
+
+    indices = (torch.tensor([0, 1], dtype=torch.int32),)
+    updates = phlower_tensor(torch.rand(2, *shape[1:]), dimension=dimension)
+    a.index_put_(indices, updates, accumulate=accumulate)
+
+    org.index_put_(indices, updates.to_tensor(), accumulate=accumulate)
+
+    np.testing.assert_array_almost_equal(a.numpy(), org.numpy())
+    assert a.is_time_series == is_time_series
+    assert a.is_voxel == is_voxel
+
+
+@pytest.mark.parametrize(
+    "shape, is_time_series, is_voxel",
+    [
+        ((3, 4, 5), False, False),
+        ((3, 4, 5), True, False),
+        ((3, 10, 3, 1), True, False),
+        ((10, 10, 10, 3, 4), False, True),
+        ((2, 10, 10, 10, 3, 4), True, True),
+    ],
+)
+@pytest.mark.parametrize("accumulate", [True, False])
+@given(
+    dimension=random_dimensions(),
+)
+def test__index_put(
+    dimension: list[float],
+    shape: tuple[int],
+    is_time_series: bool,
+    is_voxel: bool,
+    accumulate: bool,
+):
+    a = phlower_tensor(
+        torch.rand(*shape),
+        dimension=dimension,
+        is_time_series=is_time_series,
+        is_voxel=is_voxel,
+    )
+
+    indices = (torch.tensor([0, 1], dtype=torch.int32),)
+    updates = phlower_tensor(torch.rand(2, *shape[1:]), dimension=dimension)
+    actual = a.index_put(indices, updates, accumulate=accumulate)
+    desired = a.to_tensor().index_put(
+        indices, updates.to_tensor(), accumulate=accumulate
+    )
+
+    with pytest.raises(AssertionError):
+        # Check that the original tensor is not modified
+        np.testing.assert_array_almost_equal(actual.numpy(), a.numpy())
+
+    np.testing.assert_array_almost_equal(actual.numpy(), desired.numpy())
+    assert actual.is_time_series == is_time_series
+    assert actual.is_voxel == is_voxel
+
+
+@pytest.mark.parametrize("accumulate", [True, False])
+def test__index_put_raise_dimension_incompatible_error(accumulate: bool):
+    a = phlower_tensor(torch.rand(3, 4), dimension={"L": 2})
+    indices = (torch.tensor([0, 1], dtype=torch.int32),)
+    updates = phlower_tensor(torch.rand(2, 4), dimension={"L": 3})
+    with pytest.raises(DimensionIncompatibleError):
+        a.index_put_(indices, updates, accumulate=accumulate)
+
+    with pytest.raises(DimensionIncompatibleError):
+        a.index_put(indices, updates, accumulate=accumulate)
+
+
+@pytest.mark.parametrize(
+    "shape, is_time_series, is_voxel",
+    [
+        ((3, 4, 5), False, False),
+        ((3, 4, 5), True, False),
+        ((3, 10, 3, 1), True, False),
+        ((10, 10, 10, 3, 4), False, True),
+        ((2, 10, 10, 10, 3, 4), True, True),
+    ],
+)
 @given(
     dimension=random_dimensions(),
 )
