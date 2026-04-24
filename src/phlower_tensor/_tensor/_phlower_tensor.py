@@ -800,6 +800,62 @@ class PhlowerTensor:
         self._tensor.index_add_(dim, index, source, alpha=alpha)
         return self
 
+    def index_put(
+        self,
+        indices: tuple[torch.LongTensor],
+        values: torch.Tensor | PhlowerTensor,
+        accumulate: bool = False,
+    ) -> PhlowerTensor:
+        """
+        Out-of-place index put.
+
+        Returns:
+            PhlowerTensor: Tensor after index add.
+        """
+        if _has_dimension([self, values]):
+            _dimensions = _recursive_resolve(
+                [self, values], "_dimension_tensor", allow_none=False
+            )
+            # check dimension compatibility
+            _ = torch.add(*_dimensions)
+
+        values = (
+            values.to_tensor() if isinstance(values, PhlowerTensor) else values
+        )
+        new_tensor = self._tensor.index_put(
+            indices, values, accumulate=accumulate
+        )
+        return PhlowerTensor.from_pattern(
+            new_tensor,
+            dimension_tensor=self.dimension,
+            pattern=self.shape_pattern,
+        )
+
+    def index_put_(
+        self,
+        indices: tuple[torch.LongTensor],
+        values: torch.Tensor | PhlowerTensor,
+        accumulate: bool = False,
+    ) -> Self:
+        """
+        In-place index put.
+
+        Returns:
+            Self: Tensor after index add.
+        """
+        if _has_dimension([self, values]):
+            _dimensions = _recursive_resolve(
+                [self, values], "_dimension_tensor", allow_none=False
+            )
+            # check dimension compatibility
+            _ = torch.add(*_dimensions)
+
+        values = (
+            values.to_tensor() if isinstance(values, PhlowerTensor) else values
+        )
+        self._tensor.index_put_(indices, values, accumulate=accumulate)
+        return self
+
     def scatter_add(
         self,
         dim: int,
