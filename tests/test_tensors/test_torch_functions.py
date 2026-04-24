@@ -532,3 +532,28 @@ def test__torch_inv(dimensions: list[float]):
 
 
 # endregion
+
+
+# region torch.linalg.pinv
+
+
+@given(dimensions=random_dimensions())
+def test__torch_pinv(dimensions: list[float]):
+    A = torch.randn(3, 10, dtype=torch.float32)
+    A = A @ A.T
+    A = phlower_tensor(A, dimension=dimensions)
+
+    Apinv = torch.linalg.pinv(A)
+    assert isinstance(Apinv, PhlowerTensor)
+
+    desired = torch.linalg.inv(A.to_tensor())
+    assert torch.dist(Apinv.to_tensor(), desired) < 1e-3
+
+    np.testing.assert_array_almost_equal(
+        Apinv.dimension.numpy(),
+        A.dimension.numpy() * -1,
+        decimal=3,
+    )
+
+
+# endregion
