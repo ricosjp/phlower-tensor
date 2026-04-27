@@ -1,8 +1,11 @@
-from typing import NamedTuple, cast
+import operator
+from functools import reduce
+from typing import Literal, NamedTuple, cast
 
 import einops
 import torch
 
+from phlower_tensor._base._dimension import PhysicalDimensions
 from phlower_tensor._tensor import (
     PhlowerDimensionTensor,
     PhlowerTensor,
@@ -154,7 +157,7 @@ def from_batch_node_feature(
 def einsum(
     equation: str,
     *args: PhlowerTensor,
-    dimension: PhysicDimensionLikeObject | None = None,
+    dimension: Literal["auto"] | PhysicDimensionLikeObject | None = None,
     is_time_series: bool | None = None,
     is_voxel: bool | None = None,
 ) -> PhlowerTensor:
@@ -167,9 +170,11 @@ def einsum(
         args: list[PhlowerTensor]
             List of PhlowerTensor objects.
         dimension:
-                PhlowerDimensions | PhlowerDimensionTensor | torch.Tensor
+                Literal["auto"]
+                | PhlowerDimensions | PhlowerDimensionTensor | torch.Tensor
                 | dict[str, float] | list[float] | tuple[float] | None
-            Dimension for the resultant tensor.
+            Dimension for the resultant tensor. If "auto" is fed, the dimension
+            is inferred from the input.
         is_time_series: bool, optional
             Flag for time series. The default is False.
         is_voxel: bool, optional
@@ -179,6 +184,8 @@ def einsum(
         PhlowerTensor:
             Resultant tensor
     """
+    if isinstance(dimension, str) and dimension != "auto":
+        raise ValueError(f"Unexpected string for dimension: {dimension}")
     try:
         ret_tensor = torch.einsum(equation, [a.to_tensor() for a in args])
     except RuntimeError as e:
@@ -188,6 +195,18 @@ def einsum(
 
     is_none_time = is_time_series is None
     is_none_voxel = is_voxel is None
+    if isinstance(dimension, str) and dimension == "auto":
+        all_nans = all(not a.has_dimension for a in args)
+        if all_nans:
+            dimension = None
+        else:
+            phy_dims = cast(
+                list[PhysicalDimensions],
+                [a.dimension if a.has_dimension else torch.nan for a in args],
+            )
+            dimension = reduce(operator.mul, phy_dims)
+
+    dimension = cast(PhysicDimensionLikeObject | None, dimension)
 
     if is_none_time and is_none_voxel:
         pattern = equation.split("->")[-1]

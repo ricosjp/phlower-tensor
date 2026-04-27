@@ -1009,3 +1009,81 @@ def test_inner_product():
     t = phlower_tensor(a)
     inner_product = F.inner_product(t, t).reshape((3, 3)).numpy()
     np.testing.assert_almost_equal(inner_product, np.eye(3))
+
+
+@pytest.mark.parametrize(
+    "pattern, sizes, dimensions, desired_dimension",
+    [
+        (
+            "nf,nf->f",
+            [(10, 4), (10, 4)],
+            [None, None],
+            None,
+        ),
+        (
+            "nf,nf->f",
+            [(10, 4), (10, 4)],
+            [
+                [[-1], [2], [0], [0], [0], [0], [0]],
+                [[1], [0], [1], [0], [0], [0], [0]],
+            ],
+            [[0], [2], [1], [0], [0], [0], [0]],
+        ),
+        (
+            "nf,nf->f",
+            [(10, 4), (10, 4)],
+            [
+                [[-1], [2], [0], [0], [0], [0], [0]],
+                None,
+            ],
+            [[-1], [2], [0], [0], [0], [0], [0]],
+        ),
+        (
+            "npf,nf->npf",
+            [(10, 3, 4), (10, 4)],
+            [None, None],
+            None,
+        ),
+        (
+            "npf,nf->npf",
+            [(10, 3, 4), (10, 4)],
+            [
+                [[-1], [2], [0], [0], [0], [0], [0]],
+                [[1], [0], [1], [0], [0], [0], [0]],
+            ],
+            [[0], [2], [1], [0], [0], [0], [0]],
+        ),
+        (
+            "npf,nf->npf",
+            [(10, 3, 4), (10, 4)],
+            [
+                None,
+                [[1], [0], [1], [0], [0], [0], [0]],
+            ],
+            [[1], [0], [1], [0], [0], [0], [0]],
+        ),
+    ],
+)
+def test_einsum_auto_dimension(
+    pattern: str,
+    sizes: list[tuple[int]],
+    dimensions: list[list[list[int]] | None],
+    desired_dimension: list[list[int]] | None,
+):
+    torch_tensors = [torch.rand(*size) for size in sizes]
+    xs = [
+        phlower_tensor(
+            torch_tensor,
+            dimension=dimension,
+        )
+        for torch_tensor, dimension in zip(
+            torch_tensors, dimensions, strict=True
+        )
+    ]
+
+    res = F.einsum(pattern, *xs, dimension="auto")
+    if desired_dimension is None:
+        assert res.dimension is None
+    else:
+        actual_dimension = res.dimension._tensor.numpy()
+        np.testing.assert_almost_equal(actual_dimension, desired_dimension)
