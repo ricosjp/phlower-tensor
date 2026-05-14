@@ -263,16 +263,12 @@ class PhlowerShapePattern:
             indexes = [slice(None) if s != 1 else 0 for s in self._shape]
             to_shape = torch.Size([s for s in self._shape if s != 1])
         else:
-            indexes = [
-                slice(None) if (i != dim) or (s != 1) else 0
-                for i, s in enumerate(self._shape)
-            ]
+            indexes = [slice(None) for _ in self._shape]
+            if self._shape[dim] == 1:
+                indexes[dim] = 0
+
             to_shape = torch.Size(
-                [
-                    s
-                    for i, s in enumerate(self._shape)
-                    if not (i == dim and s == 1)
-                ]
+                [s for i, s in enumerate(self._shape) if indexes[i] != 0]
             )
 
         return self.resolve_index_access(indexes, to_shape=to_shape)
