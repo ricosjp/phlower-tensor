@@ -78,7 +78,7 @@ def test__to_batch_for_sparse_tensors(
     "batch_mode",
     [
         None,
-        ConcatenateType.axis,
+        ConcatenateType.axiswise,
     ],
 )
 def test__to_batch_for_dense_tensors(

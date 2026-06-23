@@ -19,7 +19,7 @@ def phlower_array(
     is_time_series: bool | None = None,
     is_voxel: bool | None = None,
     dimensions: PhysicalDimensions | None = None,
-    dtype: np.dtype | Any = np.float32,
+    dtype: np.dtype | str | None = None,
 ) -> IPhlowerArray:
     if isinstance(data, IPhlowerArray):
         if not _is_all_none(is_time_series, is_voxel, dimensions):
@@ -32,6 +32,7 @@ def phlower_array(
 
     is_time_series = bool(is_time_series)
     is_voxel = bool(is_voxel)
+    dtype = dtype or data.dtype
 
     if isinstance(data, DenseArrayType):
         return dense.NdArrayWrapper(
