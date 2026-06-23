@@ -1,4 +1,19 @@
-from enum import Enum
+from __future__ import annotations
+
+from enum import Enum, StrEnum, auto
+
+
+class ConcatenateType(StrEnum):
+    axis = auto()
+    block_diagonal = auto()
+    index_shifting = auto()
+
+    @classmethod
+    def auto_determine(cls, is_sparse: bool) -> ConcatenateType:
+        if is_sparse:
+            return ConcatenateType.block_diagonal
+        else:
+            return ConcatenateType.axis
 
 
 class PhysicalDimensionSymbolType(Enum):

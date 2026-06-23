@@ -37,7 +37,7 @@ def _is_all_none(*args: Any) -> bool:
 
 
 def phlower_tensor(
-    tensor: list | float | np.ndarray | torch.Tensor | PhlowerTensor,
+    tensor: int | list | float | np.ndarray | torch.Tensor | PhlowerTensor,
     dimension: PhysicDimensionLikeObject | None = None,
     is_time_series: bool | None = None,
     is_voxel: bool | None = None,
@@ -57,7 +57,7 @@ def phlower_tensor(
             is_voxel=is_voxel or tensor.is_voxel,
         )
 
-    if isinstance(tensor, float | list | np.ndarray):
+    if isinstance(tensor, int | float | list | np.ndarray):
         tensor = torch.tensor(tensor, dtype=dtype, device=device)
 
     if pattern is not None:

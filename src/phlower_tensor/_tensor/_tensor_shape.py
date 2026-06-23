@@ -275,6 +275,10 @@ class PhlowerShapePattern:
 
 
 def _check_shape_and_pattern(shape: torch.Size, patterns: list[str]) -> bool:
+    if len(shape) == 0 and len(patterns) == 1:
+        # if shape is scalar, pattern should be one word like "f" or "n".
+        return True
+
     if len(shape) == len(patterns):
         return True
 
