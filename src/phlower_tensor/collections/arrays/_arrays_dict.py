@@ -9,6 +9,7 @@ from phlower_tensor._batch import (
 )
 from phlower_tensor._tensor import PhlowerTensor, phlower_tensor
 from phlower_tensor.functionals import to_batch
+from phlower_tensor.utils.enums import ConcatenateType
 
 
 class _PhlowerSequenceArray:
@@ -43,6 +44,7 @@ class _PhlowerSequenceArray:
         device: str | torch.device,
         non_blocking: bool,
         disable_dimensions: bool,
+        batch_mode: ConcatenateType | None = None,
     ) -> tuple[PhlowerTensor, GraphBatchInfo]:
         tensors = [
             phlower_tensor(
@@ -57,13 +59,7 @@ class _PhlowerSequenceArray:
             for v in self._data
         ]
 
-        if self.is_sparse:
-            return to_batch(tensors)
-
-        if self.is_time_series:
-            return to_batch(tensors, dense_concat_dim=1)
-
-        return to_batch(tensors, dense_concat_dim=0)
+        return to_batch(tensors, batch_mode=batch_mode)
 
 
 class SequencedDictArray:
@@ -90,7 +86,11 @@ class SequencedDictArray:
         return list(self._phlower_sequece_dict.keys())
 
     def to_batched_tensor(
-        self, device: str, non_blocking: bool, disable_dimensions: bool = False
+        self,
+        device: str,
+        non_blocking: bool,
+        disable_dimensions: bool = False,
+        batch_mode: ConcatenateType | None = None,
     ) -> tuple[dict[str, PhlowerTensor], dict[str, GraphBatchInfo]]:
         _batched = [
             (
@@ -99,6 +99,7 @@ class SequencedDictArray:
                     device=device,
                     non_blocking=non_blocking,
                     disable_dimensions=disable_dimensions,
+                    batch_mode=batch_mode,
                 ),
             )
             for name, arr in self._phlower_sequece_dict.items()
