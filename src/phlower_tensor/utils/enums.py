@@ -4,7 +4,7 @@ from enum import Enum, StrEnum, auto
 
 
 class ConcatenateType(StrEnum):
-    axis = auto()
+    axiswise = auto()
     block_diagonal = auto()
     index_shifting = auto()
 
@@ -13,7 +13,7 @@ class ConcatenateType(StrEnum):
         if is_sparse:
             return ConcatenateType.block_diagonal
         else:
-            return ConcatenateType.axis
+            return ConcatenateType.axiswise
 
 
 class PhysicalDimensionSymbolType(Enum):

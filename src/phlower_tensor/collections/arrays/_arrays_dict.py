@@ -90,8 +90,9 @@ class SequencedDictArray:
         device: str,
         non_blocking: bool,
         disable_dimensions: bool = False,
-        batch_mode: ConcatenateType | None = None,
+        batch_mode_dict: dict[str, ConcatenateType | None] | None = None,
     ) -> tuple[dict[str, PhlowerTensor], dict[str, GraphBatchInfo]]:
+        batch_mode_dict = batch_mode_dict or {}
         _batched = [
             (
                 name,
@@ -99,7 +100,7 @@ class SequencedDictArray:
                     device=device,
                     non_blocking=non_blocking,
                     disable_dimensions=disable_dimensions,
-                    batch_mode=batch_mode,
+                    batch_mode=batch_mode_dict.get(name, None),
                 ),
             )
             for name, arr in self._phlower_sequece_dict.items()

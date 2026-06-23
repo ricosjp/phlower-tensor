@@ -24,7 +24,7 @@ def to_batch(
     batch_mode = batch_mode or ConcatenateType.auto_determine(
         tensors[0].is_sparse
     )
-    if dense_concat_dim is None and batch_mode == ConcatenateType.axis:
+    if dense_concat_dim is None and batch_mode == ConcatenateType.axiswise:
         dense_concat_dim = 1 if tensors[0].is_time_series else 0
 
     concat_tensor = concatenate(
@@ -51,7 +51,7 @@ def _create_batch_info(
             n_nodes = tuple(v[0] for v in _shapes)
             return GraphBatchInfo(_sizes, _shapes, n_nodes=n_nodes)
 
-        case ConcatenateType.axis | ConcatenateType.index_shifting:
+        case ConcatenateType.axiswise | ConcatenateType.index_shifting:
             dense_concat_dim = dense_concat_dim or 0
             _sizes = list(tensors | select(lambda x: x.size()))
             n_nodes = tuple(v[dense_concat_dim] for v in _shapes)

@@ -125,13 +125,12 @@ def _sparse_unbatch(
     sparse_tensor: torch.Tensor, batch_info: GraphBatchInfo
 ) -> list[torch.Tensor]:
     sizes = torch.tensor(batch_info.sizes, dtype=torch.int32)
-    offsets = torch.tensor(
-        torch.cumsum(
-            torch.tensor([[0, 0]] + batch_info.shapes[:-1], dtype=torch.int32),
-            dim=0,
-            dtype=torch.int32,
-        )
+    offsets = torch.cumsum(
+        torch.tensor([[0, 0]] + batch_info.shapes[:-1], dtype=torch.int32),
+        dim=0,
+        dtype=torch.int32,
     )
+
     sparse_tensor = sparse_tensor.coalesce()
 
     rows = sparse_tensor.indices()[0] - offsets[:, 0].repeat_interleave(sizes)

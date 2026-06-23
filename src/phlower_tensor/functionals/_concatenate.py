@@ -29,7 +29,7 @@ def concatenate(
     mode = mode or ConcatenateType.auto_determine(tensors[0].is_sparse)
 
     match mode:
-        case ConcatenateType.axis:
+        case ConcatenateType.axiswise:
             return _dense_concatenate(tensors, dim=dense_dim)
         case ConcatenateType.block_diagonal:
             assert dense_dim is None, (
@@ -127,6 +127,7 @@ def _check_index_like_tensor(tensor: torch.Tensor):
         raise ValueError(
             "Index shifting concatenation is only supported "
             "for integer tensors."
+            f"Got {tensor.dtype} instead."
         )
 
     if (

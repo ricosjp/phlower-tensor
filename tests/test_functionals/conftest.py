@@ -23,7 +23,11 @@ def create_sparse_tensors() -> Callable[
                 phlower_tensor(
                     phlower_array(
                         sp.random(
-                            shape[0], shape[1], density=0.1, random_state=rng
+                            shape[0],
+                            shape[1],
+                            density=0.1,
+                            random_state=rng,
+                            dtype=np.float32,
                         ),
                     ).to_tensor()
                 )
@@ -34,7 +38,11 @@ def create_sparse_tensors() -> Callable[
             phlower_tensor(
                 phlower_array(
                     sp.random(
-                        shape[0], shape[1], density=0.1, random_state=rng
+                        shape[0],
+                        shape[1],
+                        density=0.1,
+                        random_state=rng,
+                        dtype=np.float32,
                     ),
                 ).to_tensor(),
                 dimension=PhysicalDimensions(dims),

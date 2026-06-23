@@ -70,3 +70,18 @@ def test__shape_after_reshape(
     reshaped = ph_array.reshape(componentwise=componentwise)
 
     assert reshaped.shape == expected
+
+
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, np.int32, np.int64])
+def test__retain_dtype_when_input_dtype_is_None(dtype: np.dtype):
+    arr = np.random.rand(2, 3).astype(dtype)
+    ph_array = phlower_array(arr)
+
+    assert ph_array.to_numpy().dtype == dtype
+
+
+def test__change_dtype_when_input_dtype_is_specified():
+    arr = np.random.rand(2, 3).astype(np.float32)
+    ph_array = phlower_array(arr, dtype=np.float64)
+
+    assert ph_array.to_numpy().dtype == np.float64
