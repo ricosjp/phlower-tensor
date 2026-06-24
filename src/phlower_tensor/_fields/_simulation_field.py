@@ -2,18 +2,16 @@ from __future__ import annotations
 
 import abc
 from collections.abc import ItemsView, KeysView
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import Generic, TypeVar
 
 import torch
 
 from phlower_tensor._batch import GraphBatchInfo
 from phlower_tensor._tensor import PhlowerTensor
-
-if TYPE_CHECKING:
-    from phlower_tensor.collections.tensors._interface import (
-        IPhlowerTensorCollections,
-    )
-
+from phlower_tensor.collections import (
+    IPhlowerTensorCollections,
+    phlower_tensor_collection,
+)
 
 T = TypeVar("T")
 
@@ -45,13 +43,21 @@ class ISimulationField(Generic[T], metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_mesh(self) -> T: ...
 
+    @abc.abstractmethod
+    def overwrite(
+        self, new_data: dict[str, PhlowerTensor] | IPhlowerTensorCollections
+    ) -> ISimulationField: ...
+
 
 class SimulationField(ISimulationField[None]):
     def __init__(
         self,
-        field_tensors: IPhlowerTensorCollections,
+        field_tensors: IPhlowerTensorCollections | dict[str, PhlowerTensor],
         batch_info: dict[str, GraphBatchInfo] | None = None,
     ) -> None:
+        if not isinstance(field_tensors, IPhlowerTensorCollections):
+            field_tensors = phlower_tensor_collection(field_tensors)
+
         self._field_tensors = field_tensors
 
         if batch_info is None:
@@ -97,6 +103,29 @@ class SimulationField(ISimulationField[None]):
 
     def get_mesh(self) -> None:
         return None
+
+    def overwrite(
+        self, new_data: dict[str, PhlowerTensor] | IPhlowerTensorCollections
+    ) -> SimulationField:
+        if not isinstance(new_data, IPhlowerTensorCollections):
+            new_data = phlower_tensor_collection(new_data)
+
+        # NOTE: Ensure that the override data
+        # has the same shape as the original data.
+        # Otherwise, it does not perform unbatching correctly.
+        for k, v in new_data.items():
+            if k in self._field_tensors:
+                if self._field_tensors[k].shape != v.shape:
+                    raise ValueError(
+                        f"Shape mismatch for {k}: "
+                        f"{self._field_tensors[k].shape} vs {v.shape}."
+                        "Replacement data must have the same shape "
+                        "as the original data."
+                    )
+        return SimulationField(
+            field_tensors=self._field_tensors | new_data,
+            batch_info=self._batch_info,
+        )
 
     # HACK: Under construction
     # def calculate_laplacians(self, target: PhlowerTensor):
