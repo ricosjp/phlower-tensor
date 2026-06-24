@@ -4,12 +4,7 @@ import numpy as np
 import torch
 
 from phlower_tensor._array import IPhlowerArray
-from phlower_tensor._batch import (
-    GraphBatchInfo,
-)
 from phlower_tensor._tensor import PhlowerTensor, phlower_tensor
-from phlower_tensor.functionals import to_batch
-from phlower_tensor.utils.enums import ConcatenateType
 
 
 class _PhlowerSequenceArray:
@@ -39,14 +34,13 @@ class _PhlowerSequenceArray:
     def is_sparse(self) -> bool:
         return self._is_sparse
 
-    def to_batched_tensor(
+    def to_phlower_tensors(
         self,
         device: str | torch.device,
         non_blocking: bool,
         disable_dimensions: bool,
-        batch_mode: ConcatenateType | None = None,
-    ) -> tuple[PhlowerTensor, GraphBatchInfo]:
-        tensors = [
+    ) -> list[PhlowerTensor]:
+        return [
             phlower_tensor(
                 v.to_tensor(
                     device=device,
@@ -58,8 +52,6 @@ class _PhlowerSequenceArray:
             )
             for v in self._data
         ]
-
-        return to_batch(tensors, batch_mode=batch_mode)
 
 
 class SequencedDictArray:
@@ -85,27 +77,17 @@ class SequencedDictArray:
     def get_names(self) -> list[str]:
         return list(self._phlower_sequece_dict.keys())
 
-    def to_batched_tensor(
+    def to_phlower_tensors_dict(
         self,
-        device: str,
+        device: str | torch.device,
         non_blocking: bool,
         disable_dimensions: bool = False,
-        batch_mode_dict: dict[str, ConcatenateType | None] | None = None,
-    ) -> tuple[dict[str, PhlowerTensor], dict[str, GraphBatchInfo]]:
-        batch_mode_dict = batch_mode_dict or {}
-        _batched = [
-            (
-                name,
-                arr.to_batched_tensor(
-                    device=device,
-                    non_blocking=non_blocking,
-                    disable_dimensions=disable_dimensions,
-                    batch_mode=batch_mode_dict.get(name, None),
-                ),
+    ) -> dict[str, list[PhlowerTensor]]:
+        return {
+            k: v.to_phlower_tensors(
+                device=device,
+                non_blocking=non_blocking,
+                disable_dimensions=disable_dimensions,
             )
-            for name, arr in self._phlower_sequece_dict.items()
-        ]
-        _tensors = {k: v[0] for k, v in _batched}
-        _batched_info = {k: v[1] for k, v in _batched}
-
-        return _tensors, _batched_info
+            for k, v in self._phlower_sequece_dict.items()
+        }

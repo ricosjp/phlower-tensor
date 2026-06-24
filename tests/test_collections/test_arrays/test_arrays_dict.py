@@ -4,20 +4,18 @@ import numpy as np
 import pytest
 import scipy.sparse as sp
 
-from phlower_tensor import IPhlowerArray, phlower_array
+from phlower_tensor import IPhlowerArray, PhlowerTensor, phlower_array
 from phlower_tensor.collections import SequencedDictArray
 
 
 class _DenseArrayInfo(NamedTuple):
     shape: tuple[int, ...]
     dtype: np.dtype
-    batch_mode: str | None = None
     index_like: bool = False
 
 
 class _SparseArrayInfo(NamedTuple):
     dtype: np.dtype
-    batch_mode: str | None = None
     shape: tuple[int, ...] = None
 
 
@@ -85,46 +83,41 @@ def test_names(
     [
         {
             "a": _DenseArrayInfo(shape=(3,), dtype=np.float32),
-            "b": _DenseArrayInfo(
-                shape=(4,), dtype=np.float32, batch_mode="axiswise"
-            ),
+            "b": _DenseArrayInfo(shape=(4,), dtype=np.float32),
         },
         {
             "x": _DenseArrayInfo(shape=(3, 1), dtype=np.float32),
-            "y": _SparseArrayInfo(
-                dtype=np.float32, batch_mode="block_diagonal"
-            ),
+            "y": _SparseArrayInfo(dtype=np.float32),
             "z": _DenseArrayInfo(
                 shape=(),
                 dtype=np.int32,
                 index_like=True,
-                batch_mode="index_shifting",
             ),
         },
     ],
 )
-def test__batched_tensor(
+def test__to_phlower_tensors(
     n_nodes: list[int],
     name_to_info: dict[str, _DenseArrayInfo | _SparseArrayInfo],
 ):
     data = create_arrays(n_nodes, name_to_info)
     sequenced_dict_array = SequencedDictArray(data)
 
-    batch_mode_dict = {
-        name: info.batch_mode for name, info in name_to_info.items()
-    }
-    values, _ = sequenced_dict_array.to_batched_tensor(
+    values = sequenced_dict_array.to_phlower_tensors_dict(
         device="cpu",
         non_blocking=False,
         disable_dimensions=True,
-        batch_mode_dict=batch_mode_dict,
     )
 
-    for name, ph_tensor in values.items():
+    assert set(values.keys()) == set(name_to_info.keys())
+
+    for name, ph_tensors in values.items():
         should_sparse = isinstance(name_to_info[name], _SparseArrayInfo)
-        assert ph_tensor.is_sparse is should_sparse
-        assert ph_tensor.shape[0] == sum(n_nodes)
-        assert (
-            ph_tensor.to_tensor().to_dense().numpy().dtype
-            == name_to_info[name].dtype
-        )
+        for i, ph_tensor in enumerate(ph_tensors):
+            assert isinstance(ph_tensor, PhlowerTensor)
+            assert ph_tensor.is_sparse is should_sparse
+            assert ph_tensor.shape[0] == n_nodes[i]
+            assert (
+                ph_tensor.to_tensor().to_dense().numpy().dtype
+                == name_to_info[name].dtype
+            )

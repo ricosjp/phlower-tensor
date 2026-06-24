@@ -50,6 +50,11 @@ class IPhlowerTensorCollections(metaclass=abc.ABCMeta):
     def __contains__(self, key: str): ...
 
     @abc.abstractmethod
+    def __or__(
+        self, __value: IPhlowerTensorCollections
+    ) -> IPhlowerTensorCollections: ...
+
+    @abc.abstractmethod
     def __len__(self) -> int: ...
 
     @abc.abstractmethod
@@ -143,3 +148,6 @@ class IPhlowerTensorCollections(metaclass=abc.ABCMeta):
     def to(
         self, device: str | torch.device, non_blocking: bool = False
     ) -> IPhlowerTensorCollections: ...
+
+    @abc.abstractmethod
+    def to_dict(self) -> dict[str, PhlowerTensor]: ...

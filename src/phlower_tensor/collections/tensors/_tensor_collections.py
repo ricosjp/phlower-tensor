@@ -126,6 +126,11 @@ class PhlowerDictTensors(IPhlowerTensorCollections):
             {k: self._data[k] / __value for k in self.keys()}
         )
 
+    def __or__(
+        self, __value: IPhlowerTensorCollections
+    ) -> IPhlowerTensorCollections:
+        return PhlowerDictTensors(self._data | __value.to_dict())
+
     def __str__(self) -> str:
         txt = ""
         for k, v in self._data.items():
@@ -260,6 +265,9 @@ class PhlowerDictTensors(IPhlowerTensorCollections):
             )
 
         return values.pop() if len(values) == 1 else 0
+
+    def to_dict(self) -> dict[str, PhlowerTensor]:
+        return self._data
 
     def to(
         self, device: str | torch.device, non_blocking: bool = False

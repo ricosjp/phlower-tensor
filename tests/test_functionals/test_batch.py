@@ -1,13 +1,17 @@
 from collections.abc import Callable
+from typing import NamedTuple
 
+import numpy as np
 import pytest
+import scipy.sparse as sp
 import torch
 
+from phlower_tensor import IPhlowerArray, PhlowerTensor, phlower_array
 from phlower_tensor._tensor import (
-    PhlowerTensor,
     phlower_dimension_tensor,
     phlower_tensor,
 )
+from phlower_tensor.collections import SequencedDictArray
 from phlower_tensor.functionals import to_batch
 from phlower_tensor.utils.enums import ConcatenateType
 
@@ -188,6 +192,115 @@ def test__failed_index_shifting_with_non_1d_tensor():
 
     with pytest.raises(ValueError, match="only supported for 1D tensors"):
         to_batch(tensors, batch_mode=ConcatenateType.index_shifting)
+
+
+# endregion
+
+
+# region to_batch for SequencedDictArray
+
+
+class _DenseArrayInfo(NamedTuple):
+    shape: tuple[int, ...]
+    dtype: np.dtype
+    batch_mode: str | None = None
+    index_like: bool = False
+
+
+class _SparseArrayInfo(NamedTuple):
+    dtype: np.dtype
+    batch_mode: str | None = None
+    shape: tuple[int, ...] = None
+
+
+def create_arrays(
+    n_nodes: list[int],
+    name_to_info: dict[str, _DenseArrayInfo],
+) -> list[dict[str, IPhlowerArray]]:
+    data = [
+        {
+            name: phlower_array(_create_array(info, n_node))
+            for name, info in name_to_info.items()
+        }
+        for n_node in n_nodes
+    ]
+    return data
+
+
+def _create_array(
+    info: _DenseArrayInfo | _SparseArrayInfo, n_node: int
+) -> np.ndarray | sp.sparray:
+    if isinstance(info, _DenseArrayInfo):
+        if info.index_like:
+            return np.arange(n_node, dtype=info.dtype)
+        else:
+            return np.random.rand(n_node, *info.shape).astype(info.dtype)
+    if isinstance(info, _SparseArrayInfo):
+        return sp.random(
+            n_node,
+            n_node,
+            density=0.1,
+            dtype=info.dtype,
+        )
+
+    raise ValueError(f"Unknown info type: {type(info)}")
+
+
+@pytest.mark.parametrize("n_nodes", [[10, 20, 30], [5, 15], [8]])
+@pytest.mark.parametrize(
+    "name_to_info",
+    [
+        {
+            "a": _DenseArrayInfo(shape=(3,), dtype=np.float32),
+            "b": _DenseArrayInfo(
+                shape=(4,), dtype=np.float32, batch_mode="axiswise"
+            ),
+        },
+        {
+            "x": _DenseArrayInfo(shape=(3, 1), dtype=np.float32),
+            "y": _SparseArrayInfo(
+                dtype=np.float32, batch_mode="block_diagonal"
+            ),
+            "z": _DenseArrayInfo(
+                shape=(),
+                dtype=np.int32,
+                index_like=True,
+                batch_mode="index_shifting",
+            ),
+        },
+    ],
+)
+def test__batched_tensor(
+    n_nodes: list[int],
+    name_to_info: dict[str, _DenseArrayInfo | _SparseArrayInfo],
+):
+    data = create_arrays(n_nodes, name_to_info)
+    sequenced_dict_array = SequencedDictArray(data)
+
+    batch_mode_dict = {
+        name: info.batch_mode for name, info in name_to_info.items()
+    }
+    values, infos = to_batch(
+        sequenced_dict_array.to_phlower_tensors_dict(
+            device="cpu",
+            non_blocking=False,
+            disable_dimensions=True,
+        ),
+        batch_mode_dict=batch_mode_dict,
+    )
+
+    for name, ph_tensor in values.items():
+        should_sparse = isinstance(name_to_info[name], _SparseArrayInfo)
+        assert ph_tensor.is_sparse is should_sparse
+        assert ph_tensor.shape[0] == sum(n_nodes)
+        assert (
+            ph_tensor.to_tensor().to_dense().numpy().dtype
+            == name_to_info[name].dtype
+        )
+
+    assert len(infos) == len(name_to_info)
+    for _, info in infos.items():
+        assert info.n_nodes == tuple(n_nodes)
 
 
 # endregion

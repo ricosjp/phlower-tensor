@@ -11,6 +11,34 @@ from ._concatenate import concatenate
 
 
 def to_batch(
+    tensors: Sequence[PhlowerTensor] | dict[str, list[PhlowerTensor]],
+    dense_concat_dim: int | None = None,
+    batch_mode: ConcatenateType | None = None,
+    batch_mode_dict: dict[str, ConcatenateType | None] | None = None,
+) -> tuple[PhlowerTensor, GraphBatchInfo]:
+    if isinstance(tensors, dict):
+        return _to_batch_dict_tensors(tensors, batch_mode_dict=batch_mode_dict)
+
+    return _to_batch(
+        tensors, dense_concat_dim=dense_concat_dim, batch_mode=batch_mode
+    )
+
+
+def _to_batch_dict_tensors(
+    tensors: Sequence[PhlowerTensor] | dict[str, list[PhlowerTensor]],
+    batch_mode_dict: dict[str, ConcatenateType | None] | None = None,
+) -> tuple[PhlowerTensor, GraphBatchInfo]:
+    batch_mode_dict = batch_mode_dict or {}
+    _batched = {
+        k: to_batch(v, batch_mode=batch_mode_dict.get(k))
+        for k, v in tensors.items()
+    }
+    _tensors = {k: v[0] for k, v in _batched.items()}
+    _batched_info = {k: v[1] for k, v in _batched.items()}
+    return _tensors, _batched_info
+
+
+def _to_batch(
     tensors: Sequence[PhlowerTensor],
     dense_concat_dim: int | None = None,
     batch_mode: ConcatenateType | None = None,
