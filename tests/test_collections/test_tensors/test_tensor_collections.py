@@ -789,3 +789,24 @@ def test__collections_pop():
     np.testing.assert_array_almost_equal(
         popped_existing_with_default.numpy(), orig["b"]
     )
+
+
+def test__collections_requires_grad():
+    data = phlower_tensor_collection(
+        {
+            "a": phlower_tensor(torch.rand(5, 4, requires_grad=False)),
+            "b": phlower_tensor(torch.rand(5, 4, requires_grad=False)),
+            "c": phlower_tensor(torch.rand(5, 4, requires_grad=False)),
+        }
+    )
+
+    # Set requires_grad to True for all keys
+    data.requires_grad_(True)
+    for k in data.keys():
+        assert data[k].to_tensor().requires_grad is True
+
+    # Set requires_grad to False for a subset of keys
+    data.requires_grad_(False, keys=["a", "c"])
+    assert data["a"].to_tensor().requires_grad is False
+    assert data["b"].to_tensor().requires_grad is True
+    assert data["c"].to_tensor().requires_grad is False
