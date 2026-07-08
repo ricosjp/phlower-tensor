@@ -279,6 +279,14 @@ class PhlowerDictTensors(IPhlowerTensorCollections):
             }
         )
 
+    def requires_grad_(self, mode: bool, keys: list[str] | None = None) -> None:
+        # require_grad_ is an in-place operation,
+        # so it modifies the tensors in the collection directly.
+        keys = keys if keys is not None else list(self.keys())
+        for k in keys:
+            self._data[k].to_tensor().requires_grad_(mode)
+        return None
+
 
 def _all_stack(
     value: IPhlowerTensorCollections, weights: dict[str, float] | None = None

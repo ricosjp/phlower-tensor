@@ -151,3 +151,18 @@ class IPhlowerTensorCollections(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def to_dict(self) -> dict[str, PhlowerTensor]: ...
+
+    @overload
+    @abc.abstractmethod
+    def requires_grad_(self, mode: bool) -> None:
+        """
+        Set the requires_grad attribute of the tensors in the collection
+        """
+
+    @overload
+    @abc.abstractmethod
+    def requires_grad_(self, mode: bool, keys: list[str]) -> None:
+        """
+        Set the requires_grad attribute of the tensors in the collection
+        for the specified keys.
+        """
