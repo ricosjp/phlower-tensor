@@ -532,7 +532,7 @@ def test_contraction_two_arguments(
     desired = torch.einsum(desired_pattern, t_x, t_y).numpy()
     np.testing.assert_almost_equal(actual.to_tensor().numpy(), desired)
 
-    assert actual.is_time_series == x_is_time_series or y_is_time_series
+    assert actual.is_time_series == (x_is_time_series or y_is_time_series)
     assert actual.is_voxel == is_voxel
     assert actual.rank() == desired_rank
 
@@ -800,7 +800,7 @@ def test_tensor_product(
     desired = torch.einsum(desired_pattern, t_x, t_y).numpy()
     np.testing.assert_almost_equal(actual.to_numpy(), desired)
 
-    assert actual.is_time_series == x_is_time_series or y_is_time_series
+    assert actual.is_time_series == (x_is_time_series or y_is_time_series)
     assert actual.is_voxel == is_voxel
     assert actual.rank() == x.rank() + y.rank()
 
