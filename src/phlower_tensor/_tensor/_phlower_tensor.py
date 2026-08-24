@@ -249,6 +249,10 @@ class PhlowerTensor:
         """
         return self._phlower_shape.is_voxel
 
+    @property
+    def requires_grad(self) -> bool:
+        return self._tensor.requires_grad
+
     def __repr__(self) -> str:
         return (
             f"PhlowerTensor({self._tensor}, "

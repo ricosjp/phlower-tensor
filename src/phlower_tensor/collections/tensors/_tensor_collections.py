@@ -292,7 +292,7 @@ def _all_stack(
     value: IPhlowerTensorCollections, weights: dict[str, float] | None = None
 ) -> PhlowerTensor:
     if weights is None:
-        return cast(PhlowerTensor, torch.stack(list(value.values())))
+        return cast(PhlowerTensor, torch.stack(list(value.values())))  # type: ignore[arg-type]
 
     return cast(
         PhlowerTensor,

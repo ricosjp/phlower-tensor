@@ -6,6 +6,7 @@ from collections.abc import (
     ItemsView,
     KeysView,
     Sequence,
+    ValuesView,
 )
 from typing import TypeVar, overload
 
@@ -75,7 +76,7 @@ class IPhlowerTensorCollections(metaclass=abc.ABCMeta):
     def keys(self) -> KeysView[str]: ...
 
     @abc.abstractmethod
-    def values(self): ...
+    def values(self) -> ValuesView[PhlowerTensor]: ...
 
     @abc.abstractmethod
     def items(self) -> ItemsView[str, PhlowerTensor]: ...
