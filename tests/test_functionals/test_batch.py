@@ -19,6 +19,7 @@ from phlower_tensor.utils.enums import ConcatenateType
 @pytest.mark.parametrize(
     "shapes, dimensions, desired_shape",
     [
+        ([(3, 5)], None, (3, 5)),
         ([(3, 5), (4, 7), (10, 1)], None, (17, 13)),
         (
             [(3, 5), (4, 7), (10, 1)],
@@ -108,6 +109,33 @@ def test__to_batch_for_dense_tensors(
         assert batched_tensor.dimension is None
     assert batched_tensor.shape == desired_shape
     assert batch_info.shapes == shapes
+
+
+def test_to_batch_for_no_coalesced_tensors():
+    non_coalesced_array1 = sp.coo_matrix(
+        np.array([[0, 0, 1], [0, 0, 0], [1, 2, 0]], dtype=np.float32)
+    )
+    non_coalesced_array2 = sp.coo_matrix(
+        np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]], dtype=np.float32)
+    )
+    non_coalesced_tensor1 = phlower_array(non_coalesced_array1).to_tensor()
+    non_coalesced_tensor2 = phlower_array(non_coalesced_array2).to_tensor()
+    batched, _ = to_batch(
+        [
+            phlower_tensor(non_coalesced_tensor1),
+            phlower_tensor(non_coalesced_tensor2),
+        ]
+    )
+    assert batched.to_tensor().is_coalesced()
+
+
+def test_to_batch_for_single_sparse_tensor():
+    sparse_array = sp.random(5, 5, density=0.1, format="coo", dtype=np.float32)
+    sparse_tensor = phlower_array(sparse_array).to_tensor()
+    batched, _ = to_batch([phlower_tensor(sparse_tensor)])
+
+    sparse_tensor = batched.to_tensor().to_dense().numpy()
+    np.testing.assert_array_equal(sparse_tensor, sparse_array.toarray())
 
 
 # region test for index shifting batch
