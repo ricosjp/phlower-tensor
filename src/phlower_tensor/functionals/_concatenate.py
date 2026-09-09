@@ -80,6 +80,7 @@ def _sparse_concatenate(tensors: Sequence[PhlowerTensor]) -> PhlowerTensor:
     sparse_tensor = torch.sparse_coo_tensor(
         indices=torch.stack([rows, cols]), values=data, size=tuple(shape)
     )
+    sparse_tensor = sparse_tensor.coalesce()
     return PhlowerTensor(sparse_tensor, dimension)
 
 
