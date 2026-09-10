@@ -1,3 +1,6 @@
+from collections.abc import Callable
+from typing import Protocol
+
 import torch
 from torch.autograd.function import FunctionCtx
 
@@ -41,31 +44,69 @@ def spmm(
     return h.rearrange(restore_pattern, **restore_axes_length)
 
 
-class _SpMMContext(FunctionCtx):
-    size: torch.Size
-    saved_tensors: tuple[torch.Tensor, torch.Tensor, torch.Tensor]
-    needs_input_grad: list[bool]
+def _copy_doc_decorator(source: Callable) -> Callable:
+    def decorator(target: Callable) -> Callable:
+        target.__doc__ = source.__doc__
+        return target
+
+    return decorator
+
+
+class FunctionCtxProtocol(Protocol):
+    """
+    Protocol for the context object used in the custom autograd function.
+    This is a helper class to provide type hints and pass static type checking.
+    """
+
+    @property
+    def saved_tensors(self) -> tuple[torch.Tensor, ...]: ...
+
+    @property
+    def needs_input_grad(self) -> tuple[bool, ...]: ...
+
+    @property
+    def spmat_size(self) -> torch.Size: ...
+
+    @spmat_size.setter
+    def spmat_size(self, value: torch.Size) -> None: ...
+
+    @_copy_doc_decorator(FunctionCtx.save_for_backward)
+    def save_for_backward(self, *tensors: torch.Tensor) -> None: ...
 
 
 class _SparseGradSpMM(torch.autograd.Function):
+    clear_saved_tensors_on_access = True
+
     @staticmethod
     def forward(
-        ctx: _SpMMContext, spmat: torch.Tensor, dense_x: torch.Tensor
+        spmat: torch.Tensor,
+        dense_x: torch.Tensor,
     ) -> torch.Tensor:
-        # Save tensors needed for the backward pass
         spmat = spmat.coalesce()
-        ctx.save_for_backward(spmat.indices(), spmat.values(), dense_x)
-        ctx.size = spmat.size()
-
         spmm = torch.sparse.mm(spmat, dense_x)
         return spmm
 
     @staticmethod
+    def setup_context(
+        ctx: FunctionCtxProtocol,
+        inputs: tuple[torch.Tensor, ...],
+        output: tuple[torch.Tensor, ...],
+    ) -> None:
+        spmat, dense_x = inputs
+        spmat = spmat.coalesce()
+        ctx.save_for_backward(
+            spmat.indices(),
+            spmat.values(),
+            dense_x,
+        )
+        ctx.spmat_size = spmat.size()
+
+    @staticmethod
     def backward(
-        ctx: _SpMMContext, grad_output: torch.Tensor
+        ctx: FunctionCtxProtocol, grad_output: torch.Tensor
     ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         indices, values, dense_x = ctx.saved_tensors
-        size = ctx.size
+        size = ctx.spmat_size
 
         # Gradient w.r.t. the learnable sparse values (A)
         if ctx.needs_input_grad[0]:

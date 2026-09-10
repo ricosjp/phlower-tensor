@@ -209,3 +209,78 @@ def test__spmm_gradient_memory_efficient(
     desired_loss = torch.sum(torch.sparse.mm(sparse_for_torch, dense_for_torch))
     with pytest.raises(torch.OutOfMemoryError, match="CUDA out of memory"):
         desired_loss.backward()
+
+
+class MemoryContext:
+    def __init__(self):
+        self.memory_usage = {}
+
+    def __enter__(self):
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+        self.memory_usage["start"] = torch.cuda.memory_allocated()
+        return self.memory_usage
+
+    def __exit__(self, exc_type, exc_value, traceback):  # noqa: ANN001
+        torch.cuda.synchronize()
+        start = self.memory_usage["start"]
+        self.memory_usage["peak_delta"] = (
+            torch.cuda.max_memory_allocated() - start
+        )
+        self.memory_usage["end_delta"] = torch.cuda.memory_allocated() - start
+
+
+def _backward_with_phlower(
+    sp_array: sp.coo_matrix, n_mat: int, n_feature: int, repeat: int = 1
+) -> tuple[int, int]:
+    dense = torch.ones(n_mat, n_feature).requires_grad_(True)
+    dense_tensor = phlower_tensor(dense).to("cuda:0")
+    sp_tensor = phlower_tensor(phlower_array(sp_array).to_tensor()).to("cuda:0")
+
+    with MemoryContext() as mu:
+        val = spmm(sp_tensor, dense_tensor, repeat=repeat)
+        dummy_loss = torch.sum(val)
+        dummy_loss.backward()
+    peak_delta = mu["peak_delta"]
+    end_delta = mu["end_delta"]
+    return peak_delta, end_delta
+
+
+def _backward_with_torch(
+    sp_array: sp.coo_matrix, n_mat: int, n_feature: int, repeat: int = 1
+) -> tuple[int, int]:
+    dense = torch.ones(n_mat, n_feature).requires_grad_(True)
+    dense_tensor = phlower_tensor(dense).to("cuda:0")
+    sp_tensor = phlower_tensor(phlower_array(sp_array).to_tensor()).to("cuda:0")
+
+    with MemoryContext() as mu:
+        _dense = dense_tensor.to_tensor()
+        for _ in range(repeat):
+            _dense = torch.sparse.mm(sp_tensor.to_tensor(), _dense)
+        val = phlower_tensor(_dense)
+        dummy_loss = torch.sum(val)
+        dummy_loss.backward()
+    peak_delta = mu["peak_delta"]
+    end_delta = mu["end_delta"]
+    return peak_delta, end_delta
+
+
+@pytest.mark.gpu_test
+def test__memory_usage_of_spmm():
+    n_mat = 10000
+    n_feature = 4
+
+    sp_array = sp.random(n_mat, n_mat, density=0.2, dtype=np.float32)
+
+    peak_memory_phlower, end_delta_phlower = _backward_with_phlower(
+        sp_array, n_mat, n_feature, repeat=10
+    )
+
+    peak_memory_torch, end_delta_torch = _backward_with_torch(
+        sp_array, n_mat, n_feature, repeat=10
+    )
+
+    assert peak_memory_phlower <= peak_memory_torch
+
+    diff_end = abs(end_delta_torch - end_delta_phlower)
+    assert diff_end < 1 * (1024**2)  # Allow a small difference of 1 MiB
