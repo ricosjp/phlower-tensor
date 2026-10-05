@@ -129,3 +129,10 @@ def test__nonlinear_function_raises_when_not_dimensionless(op: callable):
         DimensionIncompatibleError, match="Should be dimensionless to apply"
     ):
         op(t)
+
+
+def test__reciprocal():
+    t = phlower_tensor(torch.rand(5) + 1, dimension={"T": 1})
+    t_inv = torch.reciprocal(t)
+
+    assert (t_inv * t).dimension.is_dimensionless

@@ -555,6 +555,13 @@ def leaky_relu(
     return tensor
 
 
+@dimension_wrap_implements(torch.reciprocal)
+def reciprocal(
+    tensor: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(-tensor._tensor)
+
+
 @dimension_wrap_implements(torch.unsqueeze)
 def unsqueeze(
     inputs: PhlowerDimensionTensor, dim: int
