@@ -3,7 +3,7 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 import torch
-from hypothesis import given
+from hypothesis import assume, given
 from hypothesis import strategies as st
 from hypothesis.extra import numpy as extra_np
 
@@ -558,3 +558,44 @@ def test__torch_pinv(dimensions: list[float]):
 
 
 # endregion
+
+
+# region torch.reciprocal
+
+
+@given(dimensions=random_dimensions())
+def test__reciprocal(dimensions: list[float]):
+    t = phlower_tensor(torch.rand(5) + 1, dimension=dimensions)
+    t_inv = torch.reciprocal(t)
+    assert isinstance(t_inv, PhlowerTensor)
+    assert (t_inv * t).dimension.is_dimensionless
+
+    desired_dims_t = phlower_tensor(
+        torch.rand(5), dimension=[-d for d in dimensions]
+    )
+    np.testing.assert_array_almost_equal(
+        t_inv.dimension.numpy(), desired_dims_t.dimension.numpy(), decimal=5
+    )
+
+
+# endregion
+
+
+@pytest.mark.parametrize(
+    "op",
+    [
+        torch.exp,
+        torch.tanh,
+        torch.sigmoid,
+    ],
+)
+@given(dimensions=random_dimensions())
+def test__nonlinear_function_raises_when_not_dimensionless(
+    op: Callable, dimensions: list[float]
+):
+    assume(not all(d == 0.0 for d in dimensions))
+    t = phlower_tensor(torch.rand(5), dimension=dimensions)
+    with pytest.raises(
+        DimensionIncompatibleError, match="Should be dimensionless to apply"
+    ):
+        op(t)
