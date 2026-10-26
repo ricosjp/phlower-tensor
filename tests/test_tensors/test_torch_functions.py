@@ -222,49 +222,6 @@ def test__torch_roll(
     )
 
 
-@pytest.mark.parametrize(
-    "shape, dim, index",
-    [
-        ((3, 4, 5), 0, [0, 2]),
-        ((3, 4, 5), 1, [3, 0, 3]),
-        ((3, 4, 5), -1, [4]),
-    ],
-)
-@pytest.mark.parametrize("zero_dimension", [True, False])
-@given(dimensions=random_dimensions())
-def test__torch_index_select(
-    dimensions: list[float],
-    shape: tuple[int, ...],
-    dim: int,
-    index: list[int],
-    zero_dimension: bool,
-):
-    value = phlower_tensor(
-        torch.rand(shape),
-        dimension=None if zero_dimension else dimensions,
-    )
-
-    actual: PhlowerTensor = torch.index_select(
-        value, dim=dim, index=torch.tensor(index)
-    )
-
-    if zero_dimension:
-        assert actual.dimension is None
-    else:
-        np.testing.assert_array_almost_equal(
-            actual.dimension.numpy(),
-            value.dimension.numpy(),
-            decimal=5,
-        )
-
-    desired = torch.index_select(
-        value.to_tensor(), dim=dim, index=torch.tensor(index)
-    )
-    np.testing.assert_array_almost_equal(
-        actual.numpy(), desired.numpy(), decimal=5
-    )
-
-
 # region torch.linalg.cross
 
 

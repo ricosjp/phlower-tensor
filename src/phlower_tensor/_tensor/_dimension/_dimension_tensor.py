@@ -703,13 +703,6 @@ def _torch_roll(
     return PhlowerDimensionTensor(inputs._tensor)
 
 
-@dimension_wrap_implements(torch.index_select)
-def _torch_index_select(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
-) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
-
-
 @dimension_wrap_implements(torch.linalg.cross)
 def _torch_linalg_cross(
     inputs: PhlowerDimensionTensor | torch.Tensor,
