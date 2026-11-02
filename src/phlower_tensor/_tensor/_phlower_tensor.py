@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import functools
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence, ValuesView
 from typing import Any, Self
 
 import einops
 import numpy as np
 import torch
-from pipe import select
 
 from phlower_tensor._array import IPhlowerArray, phlower_array
 from phlower_tensor._base import PhysicalDimensions
@@ -929,30 +928,20 @@ class PhlowerTensor:
                 "`phlower.nn._functionals` modules."
             )
 
-        kwargs = kwargs or {}
-
-        _tensors = _recursive_resolve(args, "_tensor")
+        inputs = (args, kwargs or {})
+        _tensor_args, _tensor_kwards = _recursive_resolve(inputs, "_tensor")
 
         # ret is tuple when torch.return_types.* is returned
-        ret: torch.Tensor | tuple = func(*_tensors, **kwargs)
+        ret: torch.Tensor | tuple = func(*_tensor_args, **_tensor_kwards)
 
-        tensor_args = [
-            a
-            for a in args
-            if isinstance(a, PhlowerTensor)
-            or (isinstance(a, list | tuple) and isinstance(a[0], PhlowerTensor))
-        ]
+        is_time_series = _any(inputs, "is_time_series")
+        is_voxel = _any(inputs, "is_voxel")
 
-        list_is_time_series = _recursive_resolve(tensor_args, "is_time_series")
-        list_is_voxel = _recursive_resolve(tensor_args, "is_voxel")
-        is_time_series = np.any(list_is_time_series).item()
-        is_voxel = np.any(list_is_voxel).item()
-
-        if _has_dimension(args):
-            _dimensions = _recursive_resolve(
-                args, "_dimension_tensor", allow_none=False
+        if _any(inputs, "has_dimension"):
+            _dim_args, _dim_kwards = _recursive_resolve(
+                inputs, "_dimension_tensor", allow_none=False
             )
-            result_units = func(*_dimensions, **kwargs)
+            result_units = func(*_dim_args, **_dim_kwards)
         else:
             # Unit calculation is not considered when unit tensor is not found.
             result_units = None
@@ -992,6 +981,19 @@ class PhlowerTensor:
         )
 
 
+def _any(args: Iterable | Any, attr: str) -> bool:
+    if isinstance(args, tuple | list | set | ValuesView):
+        for v in args:
+            if _any(v, attr):
+                return True
+
+    if isinstance(args, dict):
+        if _any(args.values(), attr):
+            return True
+
+    return getattr(args, attr, False)
+
+
 def _recursive_resolve(
     args: Iterable | Any,
     attr: str,
@@ -1017,6 +1019,17 @@ def _recursive_resolve(
                 for v in args
             ]
 
+    if isinstance(args, dict):
+        return {
+            k: _recursive_resolve(
+                v,
+                attr,
+                allow_none=allow_none,
+                return_first_only=return_first_only,
+            )
+            for k, v in args.items()
+        }
+
     _val = getattr(args, attr, args)
 
     if allow_none:
@@ -1036,13 +1049,5 @@ def _recursive_resolve(
 
 
 def _has_dimension(args: Any) -> bool:
-    if isinstance(args, tuple | list):
-        return any(list(args | select(lambda x: _has_dimension(x))))
-
-    if isinstance(args, dict):
-        return _has_dimension(list(args.values()))
-
-    if isinstance(args, PhlowerTensor):
-        return args.has_dimension
-
-    return False
+    # For backward compatibility
+    return _any(args, "has_dimension")

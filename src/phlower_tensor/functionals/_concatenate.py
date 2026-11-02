@@ -48,7 +48,7 @@ def concatenate(
 def _dense_concatenate(
     tensors: Sequence[PhlowerTensor], dim: int | None = None
 ) -> PhlowerTensor:
-    return torch.concatenate(tensors, dim=(dim or 0))  # type: ignore[call-overload]
+    return cast(PhlowerTensor, torch.concatenate(tensors, dim=(dim or 0)))  # type: ignore[arg-type]
 
 
 def _sparse_concatenate(tensors: Sequence[PhlowerTensor]) -> PhlowerTensor:

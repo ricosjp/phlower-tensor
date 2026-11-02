@@ -270,9 +270,9 @@ def dimension_wrap_implements(torch_function: Callable) -> Callable:
 
 @dimension_wrap_implements(torch.mean)
 def mean(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 def _determine_device(
@@ -307,98 +307,98 @@ def _convert_phlower_dimension_tensors(
 
 @dimension_wrap_implements(torch.add)
 def add(
-    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+    input: PhlowerDimensionTensor, other: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
-    inputs, other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+    device = _determine_device(input, other)
+    input, other = _convert_phlower_dimension_tensors(
+        input, other, device=device
     )
-    if inputs != other:
+    if input != other:
         raise DimensionIncompatibleError(
             "Add operation for different physical dimensions is not allowed."
         )
 
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.sub)
 def sub(
-    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+    input: PhlowerDimensionTensor, other: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
-    inputs, other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+    device = _determine_device(input, other)
+    input, other = _convert_phlower_dimension_tensors(
+        input, other, device=device
     )
-    if inputs != other:
+    if input != other:
         raise DimensionIncompatibleError(
             "Sub operation for different physical dimensions is not allowed."
         )
 
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.rsub)
 def rsub(
-    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+    input: PhlowerDimensionTensor, other: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
-    inputs, other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+    device = _determine_device(input, other)
+    input, other = _convert_phlower_dimension_tensors(
+        input, other, device=device
     )
-    if inputs != other:
+    if input != other:
         raise DimensionIncompatibleError(
             "Sub operation for different physical dimensions is not allowed."
         )
 
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.pow)
 def pow(
-    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+    input: PhlowerDimensionTensor, exponent: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor * other)
+    return PhlowerDimensionTensor(input._tensor * exponent)
 
 
 @dimension_wrap_implements(torch.sqrt)
-def sqrt(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor / 2)
+def sqrt(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    return PhlowerDimensionTensor(input._tensor / 2)
 
 
 @dimension_wrap_implements(torch.mul)
 def mul(
-    inputs: PhlowerDimensionTensor | torch.Tensor,
+    input: PhlowerDimensionTensor | torch.Tensor,
     other: PhlowerDimensionTensor | torch.Tensor,
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
+    device = _determine_device(input, other)
     _inputs, _other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+        input, other, device=device
     )
     return PhlowerDimensionTensor(_inputs._tensor + _other._tensor)
 
 
 @dimension_wrap_implements(torch.div)
 def div(
-    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+    input: PhlowerDimensionTensor, other: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
+    device = _determine_device(input, other)
     _inputs, _other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+        input, other, device=device
     )
     return PhlowerDimensionTensor(_inputs._tensor - _other._tensor)
 
 
 @dimension_wrap_implements(torch.reshape)
 def reshape(
-    inputs: PhlowerDimensionTensor, shape: tuple[int]
+    input: PhlowerDimensionTensor, shape: tuple[int]
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.cat)
 def cat(
     tensors: tuple[PhlowerDimensionTensor | torch.Tensor, ...],
-    dim: int,
+    dim: int = 0,
     *,
     out: PhlowerDimensionTensor | None = None,
 ) -> PhlowerDimensionTensor:
@@ -417,35 +417,35 @@ def cat(
 
 @dimension_wrap_implements(torch.sparse.mm)
 def sparse_mm(
-    inputs: PhlowerDimensionTensor, other: PhlowerDimensionTensor
+    sparse: PhlowerDimensionTensor, dense: PhlowerDimensionTensor
 ) -> PhlowerDimensionTensor:
-    if all(isinstance(v, PhlowerDimensionTensor) for v in (inputs, other)):
-        return PhlowerDimensionTensor(inputs._tensor + other._tensor)
+    if all(isinstance(v, PhlowerDimensionTensor) for v in (sparse, dense)):
+        return PhlowerDimensionTensor(sparse._tensor + dense._tensor)
 
-    raise DimensionIncompatibleError(f"input1: {inputs}, input2: {other}")
+    raise DimensionIncompatibleError(f"input1: {sparse}, input2: {dense}")
 
 
 @dimension_wrap_implements(torch.nn.functional.linear)
 def nn_linear(
-    inputs: PhlowerDimensionTensor, *args: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.nn.functional.dropout)
 def dropout(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.stack)
 def stack(
-    inputs: Sequence[PhlowerDimensionTensor], *args: Any, **kwards: Any
+    tensors: Sequence[PhlowerDimensionTensor], *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(*inputs)
+    device = _determine_device(*tensors)
     uniq_inputs: list[PhlowerDimensionTensor] = list(
-        _convert_phlower_dimension_tensors(*inputs, device=device) | uniq
+        _convert_phlower_dimension_tensors(*tensors, device=device) | uniq
     )
 
     if len(uniq_inputs) != 1:
@@ -458,312 +458,312 @@ def stack(
 
 @dimension_wrap_implements(torch.max)
 def max(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.min)
 def min(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.linalg.norm)
 def norm(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.linalg.vector_norm)
 def _vector_norm(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.nn.functional.mse_loss)
 def mse_loss(
-    inputs: PhlowerDimensionTensor,
-    others: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
+    target: PhlowerDimensionTensor,
     *args: Any,
-    **kwards: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    if inputs != others:
+    if input != target:
         raise DimensionIncompatibleError()
 
-    return inputs**2
+    return input**2
 
 
 @dimension_wrap_implements(torch.sum)
 def _sum(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    if isinstance(inputs, PhlowerDimensionTensor):
-        return inputs
+    if isinstance(input, PhlowerDimensionTensor):
+        return input
 
     raise DimensionIncompatibleError()
 
 
 @dimension_wrap_implements(torch.concatenate)
 def concatenate(
-    inputs: Sequence[PhlowerDimensionTensor], *args: Any, **kwards: Any
+    tensors: Sequence[PhlowerDimensionTensor], *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(*inputs)
+    device = _determine_device(*tensors)
     uniq_inputs: list[PhlowerDimensionTensor] = list(
-        _convert_phlower_dimension_tensors(*inputs, device=device) | uniq
+        _convert_phlower_dimension_tensors(*tensors, device=device) | uniq
     )
 
     return PhlowerDimensionTensor(uniq_inputs[0]._tensor)
 
 
 @dimension_wrap_implements(torch.exp)
-def exp(tensor: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
-    if not tensor.is_dimensionless:
+def exp(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    if not input.is_dimensionless:
         raise DimensionIncompatibleError(
-            f"Should be dimensionless to apply exp but {tensor}"
+            f"Should be dimensionless to apply exp but {input}"
         )
-    return tensor
+    return input
 
 
 @dimension_wrap_implements(torch.tanh)
-def tanh(tensor: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
-    if not tensor.is_dimensionless:
+def tanh(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    if not input.is_dimensionless:
         raise DimensionIncompatibleError(
-            f"Should be dimensionless to apply tanh but {tensor}"
+            f"Should be dimensionless to apply tanh but {input}"
         )
-    return tensor
+    return input
 
 
 @dimension_wrap_implements(torch.sigmoid)
-def sigmoid(tensor: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
-    if not tensor.is_dimensionless:
+def sigmoid(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    if not input.is_dimensionless:
         raise DimensionIncompatibleError(
-            f"Should be dimensionless to apply sigmoid but {tensor}"
+            f"Should be dimensionless to apply sigmoid but {input}"
         )
-    return tensor
+    return input
 
 
 @dimension_wrap_implements(torch.nn.functional.leaky_relu)
 def leaky_relu(
-    tensor: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
     # NOTE: Allow leaky relu operation also for dimensioned tensor
     #       because it is scale equivariant
-    return tensor
+    return input
 
 
 @dimension_wrap_implements(torch.reciprocal)
 def reciprocal(
-    tensor: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(-tensor._tensor)
+    return PhlowerDimensionTensor(-input._tensor)
 
 
 @dimension_wrap_implements(torch.unsqueeze)
 def unsqueeze(
-    inputs: PhlowerDimensionTensor, dim: int
+    input: PhlowerDimensionTensor, dim: int
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.abs)
 def torch_abs(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.gt)
 def torch_gt(
-    inputs: PhlowerDimensionTensor,
-    others: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
+    other: PhlowerDimensionTensor,
     *args: Any,
-    **kwards: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    if inputs != others:
+    if input != other:
         raise DimensionIncompatibleError()
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.ge)
 def torch_ge(
-    inputs: PhlowerDimensionTensor,
-    others: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
+    other: PhlowerDimensionTensor,
     *args: Any,
-    **kwards: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    if inputs != others:
+    if input != other:
         raise DimensionIncompatibleError()
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.lt)
 def torch_lt(
-    inputs: PhlowerDimensionTensor,
-    others: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
+    other: PhlowerDimensionTensor,
     *args: Any,
-    **kwards: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    if inputs != others:
+    if input != other:
         raise DimensionIncompatibleError()
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.le)
 def torch_le(
-    inputs: PhlowerDimensionTensor,
-    others: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
+    other: PhlowerDimensionTensor,
     *args: Any,
-    **kwards: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    if inputs != others:
+    if input != other:
         raise DimensionIncompatibleError()
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.nn.functional.pad)
 def _torch_pad(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.conv1d)
 def _torch_conv1d(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.relu)
-def _torch_relu(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+def _torch_relu(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
     # NOTE: Allow relu operation also for dimensioned tensor
     #       because it is scale equivariant
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.squeeze)
 def _torch_squeeze(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.where)
 def _torch_where(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    condition: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return condition
 
 
 @dimension_wrap_implements(torch.sin)
-def _torch_sin(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
-    if not inputs.is_dimensionless:
+def _torch_sin(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    if not input.is_dimensionless:
         raise DimensionIncompatibleError(
-            f"Should be dimensionless to apply sin but {inputs}"
+            f"Should be dimensionless to apply sin but {input}"
         )
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.cos)
-def _torch_cos(inputs: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
-    if not inputs.is_dimensionless:
+def _torch_cos(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
+    if not input.is_dimensionless:
         raise DimensionIncompatibleError(
-            f"Should be dimensionless to apply cos but {inputs}"
+            f"Should be dimensionless to apply cos but {input}"
         )
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.matmul)
 def _torch_matmul(
-    inputs: PhlowerDimensionTensor | torch.Tensor,
+    input: PhlowerDimensionTensor | torch.Tensor,
     other: PhlowerDimensionTensor | torch.Tensor,
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
+    device = _determine_device(input, other)
     _inputs, _other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+        input, other, device=device
     )
     return PhlowerDimensionTensor(_inputs._tensor + _other._tensor)
 
 
 @dimension_wrap_implements(torch.median)
 def _torch_median(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.roll)
 def _torch_roll(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.index_select)
 def _torch_index_select(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor)
+    return PhlowerDimensionTensor(input._tensor)
 
 
 @dimension_wrap_implements(torch.linalg.cross)
 def _torch_linalg_cross(
-    inputs: PhlowerDimensionTensor | torch.Tensor,
+    input: PhlowerDimensionTensor | torch.Tensor,
     other: PhlowerDimensionTensor | torch.Tensor,
     *args: Any,
     **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, other)
+    device = _determine_device(input, other)
     _inputs, _other = _convert_phlower_dimension_tensors(
-        inputs, other, device=device
+        input, other, device=device
     )
     return PhlowerDimensionTensor(_inputs._tensor + _other._tensor)
 
 
 @dimension_wrap_implements(torch.eq)
 def _torch_eq(
-    inputs: PhlowerDimensionTensor,
-    others: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
+    other: PhlowerDimensionTensor,
     *args: Any,
-    **kwards: Any,
+    **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    device = _determine_device(inputs, others)
-    inputs, others = _convert_phlower_dimension_tensors(
-        inputs, others, device=device
+    device = _determine_device(input, other)
+    input, other = _convert_phlower_dimension_tensors(
+        input, other, device=device
     )
-    if inputs != others:
+    if input != other:
         raise DimensionIncompatibleError(
             "Cannot compare tensors with different dimensions."
-            f" input: {inputs}, other: {others}"
+            f" input: {input}, other: {other}"
         )
     return zero_dimension_tensor(device=device)
 
 
 @dimension_wrap_implements(torch.clamp)
 def _torch_clamp(
-    inputs: PhlowerDimensionTensor,
+    input: PhlowerDimensionTensor,
     *args: Any,
     **kwargs: Any,
 ) -> PhlowerDimensionTensor:
-    return inputs
+    return input
 
 
 @dimension_wrap_implements(torch.linalg.cholesky)
 def _torch_cholesky(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor / 2.0)
+    return PhlowerDimensionTensor(input._tensor / 2.0)
 
 
 @dimension_wrap_implements(torch.cholesky_inverse)
 def _torch_cholesky_inverse(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor * -2.0)
+    return PhlowerDimensionTensor(input._tensor * -2.0)
 
 
 @dimension_wrap_implements(torch.cholesky_solve)
@@ -784,13 +784,13 @@ def _torch_cholesky_solve(
 
 @dimension_wrap_implements(torch.linalg.inv)
 def _torch_inv(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+    A: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor * -1.0)
+    return PhlowerDimensionTensor(A._tensor * -1.0)
 
 
 @dimension_wrap_implements(torch.linalg.pinv)
 def _pinv(
-    inputs: PhlowerDimensionTensor, *args: Any, **kwards: Any
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
 ) -> PhlowerDimensionTensor:
-    return PhlowerDimensionTensor(inputs._tensor * -1.0)
+    return PhlowerDimensionTensor(input._tensor * -1.0)

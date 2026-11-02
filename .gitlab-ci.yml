@@ -1,6 +1,6 @@
 variables:
-  PHLOWER_VERSION: 0.1.0
-  PHLOWER_IMAGE_REGISTRY: registry.ritc.jp/ricos/machine_learning/phlower-tensor
+  PHLOWER_VERSION: 1.2.0
+  PHLOWER_IMAGE_REGISTRY: registry.ritc.jp/ricos/machine_learning/phlower
 
 stages:
   - test
@@ -9,14 +9,11 @@ stages:
 
 default:
   image: ${PHLOWER_IMAGE_REGISTRY}:${PHLOWER_VERSION}-py312-cpu
-  before_script:
-    - source /workspace/.venv/bin/activate
-    - uv run python3 -m ensurepip --upgrade
-    - uv run python3 -m pip install -e .
 
 lint:
   stage: test
   script:
+    - make install CUDA_TAG="cpu"
     - make lint
     - make mypy
   tags:
@@ -26,6 +23,7 @@ lint:
 pytest_with_py312:
   stage: test
   script:
+    - make install CUDA_TAG="cpu"
     - make test
     - uv run python3 -m coverage html -d coverage
     - uv run python3 -m coverage xml
@@ -48,6 +46,7 @@ pytest_with_py311:
   stage: test
   image: ${PHLOWER_IMAGE_REGISTRY}:${PHLOWER_VERSION}-py311-cpu
   script:
+    - make install CUDA_TAG="cpu"
     - make test
   dependencies: []
 
@@ -55,6 +54,7 @@ gpu_test:
   image: ${PHLOWER_IMAGE_REGISTRY}:${PHLOWER_VERSION}-py312-cu124
   stage: test
   script:
+    - make install
     - uv run python3 -c "import torch; print(torch.cuda.get_arch_list())"
     - make gpu_test
   tags:

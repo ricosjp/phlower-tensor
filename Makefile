@@ -28,7 +28,8 @@ lint:
 
 .PHONY: mypy
 mypy:
-	uv run mypy src
+	uv run mypy --python-version 3.11 src
+	uv run mypy --python-version 3.12 src
 
 
 # .PHONY: document_local
