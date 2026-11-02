@@ -8,7 +8,7 @@ from collections.abc import (
     Sequence,
     ValuesView,
 )
-from typing import TypeVar, overload
+from typing import TypeAlias, TypeVar, overload
 
 import torch
 
@@ -16,7 +16,7 @@ from phlower_tensor._array import IPhlowerArray
 from phlower_tensor._tensor import PhlowerTensor
 from phlower_tensor.utils.typing import ArrayDataType
 
-_ComparableType = torch.Tensor | PhlowerTensor | float | int
+_ComparableType: TypeAlias = torch.Tensor | PhlowerTensor | float | int
 
 V = TypeVar("V")
 

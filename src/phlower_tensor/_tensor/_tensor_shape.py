@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from collections.abc import Iterable
+from typing import Any, TypeAlias
 
 import numpy as np
 import torch
@@ -383,7 +384,7 @@ def _collect_until_brace_end(pattern: str, start: int) -> tuple[str, int]:
     raise ValueError(f"brace is not closed correctly. {pattern}")
 
 
-_ACCESS_ITEM = int | slice | torch.Tensor | np.ndarray | None
+_ACCESS_ITEM: TypeAlias = int | slice | torch.Tensor | np.ndarray | None
 
 
 class _IndexKeyWrapper:
@@ -432,7 +433,7 @@ class _IndexKeyWrapper:
         return self._key[index]
 
     def _resolve_ellipse(
-        self, keys: list[_ACCESS_ITEM], shapes: torch.Size
+        self, keys: Iterable[_ACCESS_ITEM], shapes: torch.Size
     ) -> list[_ACCESS_ITEM]:
         total_wo_none = sum(1 for k in keys if k is not None)
         _resolved: list[_ACCESS_ITEM] = []

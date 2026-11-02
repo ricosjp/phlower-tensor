@@ -32,6 +32,8 @@ def random_phlower_tensor_with_same_dimension_and_shape(
     shape: tuple[int] | st.SearchStrategy[int],
     zero_dimension: bool | st.SearchStrategy[bool] = False,
     disable_dimension: bool | st.SearchStrategy[bool] = False,
+    allow_nan: bool = True,
+    allow_infinity: bool = True,
 ) -> PhlowerTensor | list[PhlowerTensor]:
     _shape = draw(shape)
 
@@ -69,6 +71,11 @@ def random_phlower_tensor_with_same_dimension_and_shape(
                 extra_np.arrays(
                     dtype=np.dtypes.Float32DType(),
                     shape=_shape,
+                    elements=st.floats(
+                        allow_nan=allow_nan,
+                        allow_infinity=allow_infinity,
+                        width=32,
+                    ),
                 )
             )
         ),
@@ -76,42 +83,48 @@ def random_phlower_tensor_with_same_dimension_and_shape(
     )
 
 
-@pytest.mark.parametrize("func", [torch.sin])
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda op, x: op(x), id="args"),
+        pytest.param(lambda op, x: op(input=x), id="kwargs"),
+    ],
+)
+@pytest.mark.parametrize(
+    "func, numpy_func",
+    [(torch.sin, np.sin), (torch.cos, np.cos), (torch.tanh, np.tanh)],
+)
 @given(
     value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
             st.integers(min_value=1, max_value=10), min_size=1, max_size=5
         ),
         zero_dimension=True,
+        allow_nan=False,
+        allow_infinity=False,
     )
 )
-def test__torch_functions_sin(value: PhlowerTensor, func: Callable):
-    actual = func(value)
+def test__torch_functions_wo_dimension(
+    call: Callable[..., PhlowerTensor],
+    value: PhlowerTensor,
+    func: Callable,
+    numpy_func: Callable,
+):
+    actual = call(func, value)
 
-    desired = torch.from_numpy(np.sin(value.numpy()))
+    desired = torch.from_numpy(numpy_func(value.numpy()))
     np.testing.assert_array_almost_equal(
         actual.numpy(), desired.numpy(), decimal=5
     )
 
 
-@pytest.mark.parametrize("func", [torch.cos])
-@given(
-    value=random_phlower_tensor_with_same_dimension_and_shape(
-        shape=st.lists(
-            st.integers(min_value=1, max_value=10), min_size=1, max_size=5
-        ),
-        zero_dimension=True,
-    )
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda op, x: op(x), id="args"),
+        pytest.param(lambda op, x: op(input=x), id="kwargs"),
+    ],
 )
-def test__torch_functions_cos(value: PhlowerTensor, func: Callable):
-    actual = func(value)
-
-    desired = torch.from_numpy(np.cos(value.numpy()))
-    np.testing.assert_array_almost_equal(
-        actual.numpy(), desired.numpy(), decimal=5
-    )
-
-
 @pytest.mark.parametrize("func", [torch.sin, torch.cos])
 @given(
     value=random_phlower_tensor_with_same_dimension_and_shape(
@@ -121,13 +134,33 @@ def test__torch_functions_cos(value: PhlowerTensor, func: Callable):
         zero_dimension=False,
     )
 )
-def test__torch_functions_raise_error(value: PhlowerTensor, func: Callable):
+def test__torch_functions_raise_error(
+    call: Callable[..., PhlowerTensor], value: PhlowerTensor, func: Callable
+):
     with pytest.raises(
         DimensionIncompatibleError, match="Should be dimensionless to apply"
     ):
-        _ = func(value)
+        _ = call(func, value)
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda condition, x, y: torch.where(condition, x, y), id="args"
+        ),
+        pytest.param(
+            lambda condition, x, y: torch.where(condition, input=x, other=y),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda condition, x, y: torch.where(
+                condition=condition, input=x, other=y
+            ),
+            id="kwargs",
+        ),
+    ],
+)
 @given(
     value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
@@ -136,9 +169,9 @@ def test__torch_functions_raise_error(value: PhlowerTensor, func: Callable):
         zero_dimension=False,
     )
 )
-def test__torch_where(value: PhlowerTensor):
+def test__torch_where(call: Callable[..., PhlowerTensor], value: PhlowerTensor):
     scalar = phlower_tensor(torch.tensor(0.5), dimension=value.dimension)
-    actual: PhlowerTensor = torch.where(value > scalar, value, 0.0)
+    actual: PhlowerTensor = call(value > scalar, value, 0.0)
 
     np_value = value.numpy()
     desired = torch.from_numpy(np.where(np_value > 0.5, np_value, 0.0))
@@ -153,6 +186,20 @@ def test__torch_where(value: PhlowerTensor):
 
 
 @pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x, dim=None: squeeze(x, dim), id="args"),
+        pytest.param(
+            lambda x, dim=None: squeeze(x, dim=dim),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda x, dim=None: squeeze(input=x, dim=dim),
+            id="kwargs",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
     "dim, shape, desired_shape",
     [
         (None, (3, 4, 1, 5), (3, 4, 5)),
@@ -164,16 +211,19 @@ def test__torch_where(value: PhlowerTensor):
     ],
 )
 def test__torch_squeeze(
-    dim: int | None, shape: tuple[int, ...], desired_shape: tuple[int, ...]
+    call: Callable[..., PhlowerTensor],
+    dim: int | None,
+    shape: tuple[int, ...],
+    desired_shape: tuple[int, ...],
 ):
     value = phlower_tensor(
         torch.rand(shape),
         dimension=[1.0 for _ in range(len(PhysicalDimensionSymbolType))],
     )
     if dim is not None:
-        actual: PhlowerTensor = squeeze(value, dim=dim)
+        actual: PhlowerTensor = call(value, dim)
     else:
-        actual: PhlowerTensor = squeeze(value)
+        actual: PhlowerTensor = call(value)
 
     desired = torch.rand(desired_shape)
     assert actual.shape == desired.shape
@@ -182,6 +232,24 @@ def test__torch_squeeze(
     )
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda x, shifts, dims: torch.roll(x, shifts, dims), id="args"
+        ),
+        pytest.param(
+            lambda x, shifts, dims: torch.roll(x, shifts=shifts, dims=dims),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda x, shifts, dims: torch.roll(
+                input=x, shifts=shifts, dims=dims
+            ),
+            id="kwargs",
+        ),
+    ],
+)
 @pytest.mark.parametrize(
     "shape, shifts, dims",
     [
@@ -194,6 +262,7 @@ def test__torch_squeeze(
 @pytest.mark.parametrize("zero_dimension", [True, False])
 @given(dimensions=random_dimensions())
 def test__torch_roll(
+    call: Callable[..., PhlowerTensor],
     dimensions: list[float],
     shape: tuple[int, ...],
     shifts: int | tuple[int, ...],
@@ -205,7 +274,7 @@ def test__torch_roll(
         dimension=None if zero_dimension else dimensions,
     )
 
-    actual: PhlowerTensor = torch.roll(value, shifts=shifts, dims=dims)
+    actual: PhlowerTensor = call(value, shifts, dims)
 
     if zero_dimension:
         assert actual.dimension is None
@@ -223,6 +292,24 @@ def test__torch_roll(
 
 
 @pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda x, dim, index: torch.index_select(x, dim, index), id="args"
+        ),
+        pytest.param(
+            lambda x, dim, index: torch.index_select(x, dim=dim, index=index),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda x, dim, index: torch.index_select(
+                input=x, dim=dim, index=index
+            ),
+            id="kwargs",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
     "shape, dim, index",
     [
         ((3, 4, 5), 0, [0, 2]),
@@ -233,6 +320,7 @@ def test__torch_roll(
 @pytest.mark.parametrize("zero_dimension", [True, False])
 @given(dimensions=random_dimensions())
 def test__torch_index_select(
+    call: Callable[..., PhlowerTensor],
     dimensions: list[float],
     shape: tuple[int, ...],
     dim: int,
@@ -244,9 +332,7 @@ def test__torch_index_select(
         dimension=None if zero_dimension else dimensions,
     )
 
-    actual: PhlowerTensor = torch.index_select(
-        value, dim=dim, index=torch.tensor(index)
-    )
+    actual: PhlowerTensor = call(value, dim, torch.tensor(index))
 
     if zero_dimension:
         assert actual.dimension is None
@@ -268,6 +354,19 @@ def test__torch_index_select(
 # region torch.linalg.cross
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x, y: torch.linalg.cross(x, y, dim=-1), id="args"),
+        pytest.param(
+            lambda x, y: torch.linalg.cross(x, other=y, dim=-1), id="mixed"
+        ),
+        pytest.param(
+            lambda x, y: torch.linalg.cross(input=x, other=y, dim=-1),
+            id="kwargs",
+        ),
+    ],
+)
 @given(
     tensor1=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.tuples(
@@ -284,8 +383,12 @@ def test__torch_index_select(
         zero_dimension=st.booleans(),
     ),
 )
-def test__torch_linalg_cross(tensor1: PhlowerTensor, tensor2: PhlowerTensor):
-    actual = torch.linalg.cross(tensor1, tensor2, dim=-1)
+def test__torch_linalg_cross(
+    call: Callable[..., PhlowerTensor],
+    tensor1: PhlowerTensor,
+    tensor2: PhlowerTensor,
+):
+    actual = call(tensor1, tensor2)
 
     assert isinstance(actual, PhlowerTensor)
     np.testing.assert_array_almost_equal(
@@ -302,6 +405,19 @@ def test__torch_linalg_cross(tensor1: PhlowerTensor, tensor2: PhlowerTensor):
     )
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x, y: torch.linalg.cross(x, y, dim=-1), id="args"),
+        pytest.param(
+            lambda x, y: torch.linalg.cross(x, other=y, dim=-1), id="mixed"
+        ),
+        pytest.param(
+            lambda x, y: torch.linalg.cross(input=x, other=y, dim=-1),
+            id="kwargs",
+        ),
+    ],
+)
 @given(
     tensor=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.tuples(
@@ -311,11 +427,13 @@ def test__torch_linalg_cross(tensor1: PhlowerTensor, tensor2: PhlowerTensor):
         disable_dimension=True,
     )
 )
-def test__torch_linalg_cross_with_raw_tensor(tensor: PhlowerTensor):
+def test__torch_linalg_cross_with_raw_tensor(
+    call: Callable[..., PhlowerTensor], tensor: PhlowerTensor
+):
     tensor1 = tensor
     tensor2 = torch.rand(tensor.shape)
 
-    actual: PhlowerTensor = torch.linalg.cross(tensor1, tensor2, dim=-1)
+    actual: PhlowerTensor = call(tensor1, tensor2)
     assert actual.dimension is None
 
     desired = torch.linalg.cross(tensor1.to_tensor(), tensor2, dim=-1)
@@ -329,6 +447,18 @@ def test__torch_linalg_cross_with_raw_tensor(tensor: PhlowerTensor):
 # region torch.linalg.norm, torch.linalg.vector_norm
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda op, x, ord, dim: op(x, ord, dim), id="args"),
+        pytest.param(
+            lambda op, x, ord, dim: op(x, ord=ord, dim=dim), id="mixed"
+        ),
+        pytest.param(
+            lambda op, x, ord, dim: op(input=x, ord=ord, dim=dim), id="kwargs"
+        ),
+    ],
+)
 @pytest.mark.parametrize("func", [torch.linalg.norm, torch.linalg.vector_norm])
 @pytest.mark.parametrize("ord", [2, float("inf"), -float("inf"), 1, -1])
 @pytest.mark.parametrize("dim", [-1, 0, 1])
@@ -342,9 +472,13 @@ def test__torch_linalg_cross_with_raw_tensor(tensor: PhlowerTensor):
     )
 )
 def test__torch_linalg_norm(
-    tensor: PhlowerTensor, func: Callable, ord: float, dim: int
+    call: Callable[..., PhlowerTensor],
+    tensor: PhlowerTensor,
+    func: Callable,
+    ord: float,
+    dim: int,
 ):
-    actual = func(tensor, ord=ord, dim=dim)
+    actual = call(func, tensor, ord, dim)
     assert isinstance(actual, PhlowerTensor)
 
     np.testing.assert_array_almost_equal(
@@ -366,6 +500,22 @@ def test__torch_linalg_norm(
 
 
 @pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda x, lower, upper: torch.clamp(x, lower, upper), id="args"
+        ),
+        pytest.param(
+            lambda x, lower, upper: torch.clamp(x, min=lower, max=upper),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda x, lower, upper: torch.clamp(input=x, min=lower, max=upper),
+            id="kwargs",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
     "values, min, max",
     [
         ([-0.5, 0.2, 1.5, 2.0], 0.0, 1.0),
@@ -375,10 +525,14 @@ def test__torch_linalg_norm(
 )
 @given(dimensions=random_dimensions())
 def test__torch_clamp_with_explicit_cases(
-    dimensions: list[float], values: list[float], min: float, max: float
+    call: Callable[..., PhlowerTensor],
+    dimensions: list[float],
+    values: list[float],
+    min: float,
+    max: float,
 ):
     tensor = phlower_tensor(torch.tensor(values), dimension=dimensions)
-    actual = torch.clamp(tensor, min=min, max=max)
+    actual = call(tensor, min, max)
 
     assert np.all(torch.min(actual).numpy() == min)
     assert np.all(torch.max(actual).numpy() == max)
@@ -390,6 +544,22 @@ def test__torch_clamp_with_explicit_cases(
     )
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda x, lower, upper: torch.clamp(x, lower, upper), id="args"
+        ),
+        pytest.param(
+            lambda x, lower, upper: torch.clamp(x, min=lower, max=upper),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda x, lower, upper: torch.clamp(input=x, min=lower, max=upper),
+            id="kwargs",
+        ),
+    ],
+)
 @given(
     value=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
@@ -401,8 +571,13 @@ def test__torch_clamp_with_explicit_cases(
     min_value=st.floats(-10.0, 0.0),
     max_value=st.floats(0.0, 10.0),
 )
-def test__torch_clamp(value: PhlowerTensor, min_value: float, max_value: float):
-    actual: PhlowerTensor = torch.clamp(value, min=min_value, max=max_value)
+def test__torch_clamp(
+    call: Callable[..., PhlowerTensor],
+    value: PhlowerTensor,
+    min_value: float,
+    max_value: float,
+):
+    actual: PhlowerTensor = call(value, min_value, max_value)
 
     if value.has_dimension:
         np.testing.assert_array_almost_equal(
@@ -425,6 +600,14 @@ def test__torch_clamp(value: PhlowerTensor, min_value: float, max_value: float):
 # region torch_eq
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x, y: torch.eq(x, y), id="args"),
+        pytest.param(lambda x, y: torch.eq(x, other=y), id="mixed"),
+        pytest.param(lambda x, y: torch.eq(input=x, other=y), id="kwargs"),
+    ],
+)
 @given(
     values=random_phlower_tensor_with_same_dimension_and_shape(
         shape=st.lists(
@@ -434,13 +617,13 @@ def test__torch_clamp(value: PhlowerTensor, min_value: float, max_value: float):
         disable_dimension=st.booleans(),
     )
 )
-def test__torch_eq(values: PhlowerTensor):
+def test__torch_eq(call: Callable[..., PhlowerTensor], values: PhlowerTensor):
     tensor1 = values
     tensor2 = phlower_tensor(
         values.to_tensor().detach().clone(), dimension=values.dimension
     )
 
-    actual: PhlowerTensor = torch.eq(tensor1, tensor2)
+    actual: PhlowerTensor = call(tensor1, tensor2)
 
     if tensor1.has_dimension:
         assert actual.dimension.is_dimensionless
@@ -454,6 +637,14 @@ def test__torch_eq(values: PhlowerTensor):
 
 
 @pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x, y: torch.eq(x, y), id="args"),
+        pytest.param(lambda x, y: torch.eq(x, other=y), id="mixed"),
+        pytest.param(lambda x, y: torch.eq(input=x, other=y), id="kwargs"),
+    ],
+)
+@pytest.mark.parametrize(
     "dimension1, dimension2",
     [
         ({"L": 1.0}, {"L": 2.0}),
@@ -463,7 +654,9 @@ def test__torch_eq(values: PhlowerTensor):
     ],
 )
 def test__torch_eq_with_different_dimension(
-    dimension1: dict[str, float], dimension2: dict[str, float]
+    call: Callable[..., PhlowerTensor],
+    dimension1: dict[str, float],
+    dimension2: dict[str, float],
 ):
     tensor1 = phlower_tensor(
         torch.tensor([1.0, 2.0, 3.0]),
@@ -478,7 +671,7 @@ def test__torch_eq_with_different_dimension(
         DimensionIncompatibleError,
         match="Cannot compare tensors with different dimensions",
     ):
-        _ = torch.eq(tensor1, tensor2)
+        _ = call(tensor1, tensor2)
 
 
 # endregion
@@ -487,13 +680,22 @@ def test__torch_eq_with_different_dimension(
 # region torch.linalg.cholesky
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x: torch.linalg.cholesky(x), id="args"),
+        pytest.param(lambda x: torch.linalg.cholesky(input=x), id="kwargs"),
+    ],
+)
 @given(dimensions=random_dimensions())
-def test__torch_cholesky(dimensions: list[float]):
+def test__torch_cholesky(
+    call: Callable[..., PhlowerTensor], dimensions: list[float]
+):
     x = phlower_tensor(
         torch.tensor([[1.0, 0.5], [0.5, 1.0]]), dimension=dimensions
     )
 
-    L = torch.linalg.cholesky(x)
+    L = call(x)
     desired = torch.linalg.cholesky(x.to_tensor())
 
     np.testing.assert_array_almost_equal(L.numpy(), desired.numpy(), decimal=5)
@@ -503,15 +705,24 @@ def test__torch_cholesky(dimensions: list[float]):
     )
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x: torch.cholesky_inverse(x), id="args"),
+        pytest.param(lambda x: torch.cholesky_inverse(input=x), id="kwargs"),
+    ],
+)
 @given(dimensions=random_dimensions())
-def test__torch_cholesky_inverse(dimensions: list[float]):
+def test__torch_cholesky_inverse(
+    call: Callable[..., PhlowerTensor], dimensions: list[float]
+):
     # https://docs.pytorch.org/docs/stable/generated/torch.cholesky_inverse.html
     A = torch.randn(3, 3, dtype=torch.float32)
     A = A @ A.T + torch.eye(3, dtype=torch.float32) * 1e-3
     A = phlower_tensor(A, dimension=dimensions)
     L = torch.linalg.cholesky(A)
 
-    Ainv = torch.cholesky_inverse(L)
+    Ainv = call(L)
     assert isinstance(Ainv, PhlowerTensor)
 
     desired = torch.cholesky_inverse(L.to_tensor())
@@ -524,9 +735,28 @@ def test__torch_cholesky_inverse(dimensions: list[float]):
     )
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(
+            lambda b, L: torch.cholesky_solve(b, L),
+            id="args",
+        ),
+        pytest.param(
+            lambda b, L: torch.cholesky_solve(b, input2=L),
+            id="mixed",
+        ),
+        pytest.param(
+            lambda b, L: torch.cholesky_solve(input=b, input2=L),
+            id="kwargs",
+        ),
+    ],
+)
 @given(dimensions1=random_dimensions(), dimensions2=random_dimensions())
 def test__torch_cholesky_solve(
-    dimensions1: list[float], dimensions2: list[float]
+    call: Callable[[PhlowerTensor, PhlowerTensor], PhlowerTensor],
+    dimensions1: list[float],
+    dimensions2: list[float],
 ):
     A = torch.randn(3, 3, dtype=torch.float32)
     A = A @ A.T + torch.eye(3, dtype=torch.float32) * 1e-3
@@ -534,7 +764,7 @@ def test__torch_cholesky_solve(
     L = torch.linalg.cholesky(A)
     B = phlower_tensor(torch.randn(3, 2), dimension=dimensions2)
 
-    X = torch.cholesky_solve(B, L)
+    X = call(B, L)
     assert isinstance(X, PhlowerTensor)
 
     desired = torch.cholesky_solve(B.to_tensor(), L.to_tensor())
@@ -556,13 +786,22 @@ def test__torch_cholesky_solve(
 # region torch.linalg.inv
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x: torch.linalg.inv(x), id="args"),
+        pytest.param(lambda x: torch.linalg.inv(A=x), id="kwargs"),
+    ],
+)
 @given(dimensions=random_dimensions())
-def test__torch_inv(dimensions: list[float]):
+def test__torch_inv(
+    call: Callable[..., PhlowerTensor], dimensions: list[float]
+):
     A = torch.randn(3, 3, dtype=torch.float32)
     A = A @ A.T + torch.eye(3, dtype=torch.float32) * 1e-3
     A = phlower_tensor(A, dimension=dimensions)
 
-    Ainv = torch.linalg.inv(A)
+    Ainv = call(A)
     assert isinstance(Ainv, PhlowerTensor)
 
     desired = torch.linalg.inv(A.to_tensor())
@@ -581,13 +820,22 @@ def test__torch_inv(dimensions: list[float]):
 # region torch.linalg.pinv
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x: torch.linalg.pinv(x), id="args"),
+        pytest.param(lambda x: torch.linalg.pinv(input=x), id="kwargs"),
+    ],
+)
 @given(dimensions=random_dimensions())
-def test__torch_pinv(dimensions: list[float]):
+def test__torch_pinv(
+    call: Callable[..., PhlowerTensor], dimensions: list[float]
+):
     A = torch.randn(3, 10, dtype=torch.float32)
     A = A @ A.T
     A = phlower_tensor(A, dimension=dimensions)
 
-    Apinv = torch.linalg.pinv(A)
+    Apinv = call(A)
     assert isinstance(Apinv, PhlowerTensor)
 
     desired = torch.linalg.inv(A.to_tensor())
@@ -606,10 +854,19 @@ def test__torch_pinv(dimensions: list[float]):
 # region torch.reciprocal
 
 
+@pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda x: torch.reciprocal(x), id="args"),
+        pytest.param(lambda x: torch.reciprocal(input=x), id="kwargs"),
+    ],
+)
 @given(dimensions=random_dimensions())
-def test__reciprocal(dimensions: list[float]):
+def test__reciprocal(
+    call: Callable[..., PhlowerTensor], dimensions: list[float]
+):
     t = phlower_tensor(torch.rand(5) + 1, dimension=dimensions)
-    t_inv = torch.reciprocal(t)
+    t_inv = call(t)
     assert isinstance(t_inv, PhlowerTensor)
     assert (t_inv * t).dimension.is_dimensionless
 
@@ -625,6 +882,13 @@ def test__reciprocal(dimensions: list[float]):
 
 
 @pytest.mark.parametrize(
+    "call",
+    [
+        pytest.param(lambda op, x: op(x), id="args"),
+        pytest.param(lambda op, x: op(input=x), id="kwargs"),
+    ],
+)
+@pytest.mark.parametrize(
     "op",
     [
         torch.exp,
@@ -634,11 +898,11 @@ def test__reciprocal(dimensions: list[float]):
 )
 @given(dimensions=random_dimensions())
 def test__nonlinear_function_raises_when_not_dimensionless(
-    op: Callable, dimensions: list[float]
+    call: Callable[..., PhlowerTensor], op: Callable, dimensions: list[float]
 ):
     assume(not all(d == 0.0 for d in dimensions))
     t = phlower_tensor(torch.rand(5), dimension=dimensions)
     with pytest.raises(
         DimensionIncompatibleError, match="Should be dimensionless to apply"
     ):
-        op(t)
+        call(op, t)
