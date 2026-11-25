@@ -546,6 +546,32 @@ def sigmoid(input: PhlowerDimensionTensor) -> PhlowerDimensionTensor:
     return input
 
 
+@dimension_wrap_implements(torch.nn.functional.silu)
+def silu(
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    # NOTE: silu(x) = x * sigmoid(x) is not scale equivariant
+    #       (unlike leaky relu), so the input must be dimensionless
+    if not input.is_dimensionless:
+        raise DimensionIncompatibleError(
+            f"Should be dimensionless to apply silu but {input}"
+        )
+    return input
+
+
+@dimension_wrap_implements(torch.nn.functional.gelu)
+def gelu(
+    input: PhlowerDimensionTensor, *args: Any, **kwargs: Any
+) -> PhlowerDimensionTensor:
+    # NOTE: gelu(x) = x * Phi(x) is not scale equivariant
+    #       (unlike leaky relu), so the input must be dimensionless
+    if not input.is_dimensionless:
+        raise DimensionIncompatibleError(
+            f"Should be dimensionless to apply gelu but {input}"
+        )
+    return input
+
+
 @dimension_wrap_implements(torch.nn.functional.leaky_relu)
 def leaky_relu(
     input: PhlowerDimensionTensor, *args: Any, **kwargs: Any

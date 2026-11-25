@@ -894,6 +894,8 @@ def test__reciprocal(
         torch.exp,
         torch.tanh,
         torch.sigmoid,
+        torch.nn.functional.silu,
+        torch.nn.functional.gelu,
     ],
 )
 @given(dimensions=random_dimensions())
